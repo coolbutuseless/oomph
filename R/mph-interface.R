@@ -50,7 +50,7 @@ mph_match <- function(s, mph) {
 #' 
 #' @param x integer vector, numeric vector or list
 #' @param s strings to search for
-#' @param mphash minimal perfect hash of string population
+#' @param mph minimal perfect hash of string population
 #' @return Subset of elements of x
 #' @examples
 #' mph <- mph_init(letters)

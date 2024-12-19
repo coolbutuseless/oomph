@@ -11,7 +11,7 @@ mph_subset(x, s, mph)
 
 \item{s}{strings to search for}
 
-\item{mphash}{minimal perfect hash of string population}
+\item{mph}{minimal perfect hash of string population}
 }
 \value{
 Subset of elements of x
