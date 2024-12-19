@@ -6,7 +6,7 @@
 <!-- badges: start -->
 
 ![](https://img.shields.io/badge/cool-useless-green.svg)
-[![R-CMD-check](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `oomph` is a technical demonstration of using a *minimal perfect hashing
@@ -84,10 +84,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |  median |  itr/sec | mem_alloc |
-|:-------------------|---------:|--------:|---------:|----------:|
-| match(t1, nms)     | 1226.356 | 1210.05 |    1.000 |  394.4094 |
-| mph_match(t1, mph) |    1.000 |    1.00 | 1008.048 |    1.0000 |
+| expression         |     min |   median |  itr/sec | mem_alloc |
+|:-------------------|--------:|---------:|---------:|----------:|
+| match(t1, nms)     | 1014.56 | 1071.687 |   1.0000 |  394.4094 |
+| mph_match(t1, mph) |    1.00 |    1.000 | 941.9209 |    1.0000 |
 
 ``` r
 bench::mark(
@@ -97,10 +97,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |  median |  itr/sec | mem_alloc |
-|:-------------------|---------:|--------:|---------:|----------:|
-| match(t2, nms)     | 3710.766 | 3402.88 |    1.000 |       Inf |
-| mph_match(t2, mph) |    1.000 |    1.00 | 3197.049 |       NaN |
+| expression         |      min |   median |  itr/sec | mem_alloc |
+|:-------------------|---------:|---------:|---------:|----------:|
+| match(t2, nms)     | 3388.144 | 3239.185 |    1.000 |       Inf |
+| mph_match(t2, mph) |    1.000 |    1.000 | 3147.886 |       NaN |
 
 ``` r
 bench::mark(
@@ -110,10 +110,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |   median |  itr/sec | mem_alloc |
-|:-------------------|---------:|---------:|---------:|----------:|
-| match(t3, nms)     | 577.8591 | 597.4764 |   1.0000 |  8255.679 |
-| mph_match(t3, mph) |   1.0000 |   1.0000 | 580.9547 |     1.000 |
+| expression         |     min |   median |  itr/sec | mem_alloc |
+|:-------------------|--------:|---------:|---------:|----------:|
+| match(t3, nms)     | 576.815 | 597.8599 |   1.0000 |  8255.679 |
+| mph_match(t3, mph) |   1.000 |   1.0000 | 587.2985 |     1.000 |
 
 ``` r
 bench::mark(
@@ -123,10 +123,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |   median |  itr/sec | mem_alloc |
-|:-------------------|---------:|---------:|---------:|----------:|
-| match(t4, nms)     | 52.15352 | 57.45008 |  1.00000 |  916.3399 |
-| mph_match(t4, mph) |  1.00000 |  1.00000 | 56.52499 |    1.0000 |
+| expression         |      min |   median | itr/sec | mem_alloc |
+|:-------------------|---------:|---------:|--------:|----------:|
+| match(t4, nms)     | 52.13536 | 58.60936 |  1.0000 |  916.3399 |
+| mph_match(t4, mph) |  1.00000 |  1.00000 | 57.7892 |    1.0000 |
 
 ## List subsetting - Extract 100 elements of a `list` by name
 
@@ -141,9 +141,9 @@ bench::mark(
 
 | expression            |    min | median |     itr/sec | mem_alloc |
 |:----------------------|-------:|-------:|------------:|----------:|
-| Standard R            | 1.52ms | 1.69ms |    585.1958 |    3.53MB |
-| \[\] and mph indexing | 3.94µs | 4.18µs | 223171.1138 |    2.09KB |
-| custom mph method     | 3.48µs | 3.69µs | 259159.0415 |    4.95KB |
+| Standard R            | 1.57ms | 1.73ms |    570.8847 |    3.53MB |
+| \[\] and mph indexing | 3.98µs | 4.26µs | 219830.6914 |    2.09KB |
+| custom mph method     | 3.48µs | 3.69µs | 254636.6034 |    4.95KB |
 
 ## Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -158,9 +158,9 @@ bench::mark(
 
 | expression                       |    min | median |     itr/sec | mem_alloc |
 |:---------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t3\]                 | 1.53ms |  1.7ms |    575.5386 |    3.53MB |
-| big_vector\[mph_match(t3, mph)\] | 3.48µs | 3.73µs | 250297.8343 |     1.7KB |
-| mph_subset(big_vector, t3, mph)  | 2.75µs | 2.99µs | 319903.8169 |  781.73KB |
+| big_vector\[t3\]                 | 1.55ms | 1.74ms |    562.9596 |    3.53MB |
+| big_vector\[mph_match(t3, mph)\] | 3.53µs | 3.77µs | 250760.8531 |     1.7KB |
+| mph_subset(big_vector, t3, mph)  | 2.83µs | 2.99µs | 325477.3328 |  781.73KB |
 
 ## Creating the C code for the minimal perfect hash if using ‘mph’ on the command line.
 

@@ -19,7 +19,7 @@ library(oomph)
 
 <!-- badges: start -->
 ![](https://img.shields.io/badge/cool-useless-green.svg)
-[![R-CMD-check](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 `oomph` is a technical demonstration of using a *minimal perfect hashing function* to do
