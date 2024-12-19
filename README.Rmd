@@ -1,0 +1,158 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = FALSE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+
+library(oomph)
+```
+
+# oomph
+
+<!-- badges: start -->
+![](https://img.shields.io/badge/cool-useless-green.svg)
+[![R-CMD-check](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph-dev/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+`oomph` is a technical demonstration of using a *minimal perfect hashing function* to do
+fast named lookups of data in lists and vectors.
+
+The hashed lookup can be **1000x** faster than R's standard lookup method (depending on 
+number of elements to extract).
+
+Next steps:
+
+* This would be much better with a dynamic minimal perfect hash which updated
+  with new elements
+* The included mph code has some issues with large numbers of input strings.
+  I think it may have something to do with large stack using with the
+  recursive calling of `graph.c / cyclicdeledge()`
+
+
+## Installation
+
+You can install from [GitHub](https://github.com/coolbutuseless/oomph) with:
+
+``` r
+# install.package('remotes')
+remotes::install_github('coolbutuseless/oomph')
+```
+
+## Setup test data
+
+
+```{r}
+library(oomph)
+N <- 200000
+set.seed(1)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 200,000 random names
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+nms <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+head(nms)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# A big vector and a big list (each with 200,000 elements)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+big_vector <- seq(N)
+big_list   <- as.list(seq(N))
+
+names(big_vector) <- nms
+names(big_list  ) <- nms
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Probe sets to use for testing
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+t1  <- sample(nms,    1, replace = TRUE)
+t2  <- sample(nms,   10, replace = TRUE)
+t3  <- sample(nms,  100, replace = TRUE)
+t4  <- sample(nms, 1000, replace = TRUE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mph <- mph_init(nms)
+```
+
+
+## Compare `match()` with `mph_match()`
+
+
+```{r match}
+bench::mark(
+  match(t1, nms),
+  mph_match(t1, mph),
+  relative = TRUE
+)[, 1:5] |> knitr::kable()
+
+bench::mark(
+  match(t2, nms),
+  mph_match(t2, mph),
+  relative = TRUE
+)[, 1:5] |> knitr::kable()
+
+bench::mark(
+  match(t3, nms),
+  mph_match(t3, mph),
+  relative = TRUE
+)[, 1:5] |> knitr::kable()
+
+bench::mark(
+  match(t4, nms),
+  mph_match(t4, mph),
+  relative = TRUE
+)[, 1:5] |> knitr::kable()
+```
+
+
+
+## List subsetting - Extract 100 elements of a `list` by name
+
+```{r list-subset}
+bench::mark(
+  `Standard R`           = big_list[t3],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph)],
+  `custom mph method`    = mph_subset(big_list, t3, mph),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+
+
+## Vector subsetting - Extract 100 elements of a `vector` by name
+
+```{r vector-subset}
+bench::mark(
+  big_vector[t3],
+  big_vector[mph_match(t3, mph)],
+  mph_subset(big_vector, t3, mph),
+  check = F
+)[, 1:5] |> knitr::kable()
+```
+
+
+
+## Creating the C code for the minimal perfect hash if using 'mph' on the command line.
+
+There are a number of programs which will produce C code to
+do minimal perfect hashing of a list of strings e.g. `gperf`, `cmph`.
+
+I chose `mph` as described in [A Family of Perfect Hashing Methods(pdf)](https://staff.itee.uq.edu.au/havas/TR0242.pdf)
+
+* Download and compile [http://www.ibiblio.org/pub/Linux/devel/lang/c/mph-1.2.tar.gz]
+* In R: `writeLines(colors(), "input.txt")`
+* On the command line:  `mph < input.txt | emitc > hash.c`
+* Incorporate the `hash.c` code into this package and add the `col_to_rgb()` wrapper
+  which uses it.
+
+
+

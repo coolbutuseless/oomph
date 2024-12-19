@@ -1,0 +1,2 @@
+#PKG_CFLAGS+=-Wconversion 
+#PKG_CFLAGS+=-fsanitize=pointer-overflow -fsanitize-trap=pointer-overflow

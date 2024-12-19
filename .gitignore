@@ -1,0 +1,9 @@
+.DS_Store
+.Rhistory
+*.Rproj
+.Rproj.user
+*.swp
+inst/doc
+doc
+Meta
+pkgdown
