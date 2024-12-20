@@ -22,7 +22,10 @@ library(oomph)
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a packaged for fast named look-up of data in static lists and vectors.
+`oomph` is a package for: 
+
+* fast string matching
+* fast named look-up of data in static lists and vectors.
 
 Internally this uses a hash-map in C to map strings to integers.  In R, 
 this appears as a minimal perfect hash where each string maps to its index, 
@@ -39,8 +42,8 @@ number of elements in original object and the number of elements to extract).
       of hash collisions, and can make other operations faster at the cost or
       more memory being allocated.
 * `mph_match(s, mph)` find the indices of the strings `s` (equivalent to R's `match()`)
-* `mph_subset(nms, x, mph)` extract named `elems` from vector/list object `s` using 
-  the given hash object.
+* `mph_subset(nms, x, mph)` extract elements with names `nms` from vector/list `x` using 
+  the given hash object `mph`.
 
 
 
@@ -86,10 +89,10 @@ t4  <- sample(nms, 1000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # By default, the number of hash buckets is the same as the number of 
-# strings.  To reduce the possibility of hash collisions (and make look-ups
+# strings.  To reduce the possibility of hash collisions (and possibly make look-ups
 # faster), the number of hash buckets can be changed using the 'size_factor'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph1 <- mph_init(nms)                  # Allocate example length(nms) buckets
+mph1 <- mph_init(nms)                  # Allocate exactly length(nms) buckets
 mph4 <- mph_init(nms, size_factor = 4) # Allocate: 4 * length(nms) buckets
 ```
 
@@ -101,46 +104,28 @@ mph4 <- mph_init(nms, size_factor = 4) # Allocate: 4 * length(nms) buckets
 bench::mark(
   match(t1, nms),
   mph_match(t1, mph1),
-  mph_match(t1, mph4),
-  relative = TRUE
+  mph_match(t1, mph4)
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t2, nms),
   mph_match(t2, mph1),
-  mph_match(t2, mph4),
-  relative = TRUE
+  mph_match(t2, mph4)
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t3, nms),
   mph_match(t3, mph1),
-  mph_match(t3, mph4),
-  relative = TRUE
+  mph_match(t3, mph4)
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t4, nms),
   mph_match(t4, mph1),
-  mph_match(t4, mph4),
-  relative = TRUE
+  mph_match(t4, mph4)
 )[, 1:5] |> knitr::kable()
 ```
 
-
-
-## List subsetting - Extract 100 elements of a `list` by name
-
-```{r list-subset}
-bench::mark(
-  `Standard R`           = big_list[t3],
-  `[] and mph indexing`  = big_list[mph_match(t3, mph1)],
-  `[] and mph indexing`  = big_list[mph_match(t3, mph4)],
-  `custom mph method`    = mph_subset(t3, big_list, mph1),
-  `custom mph method`    = mph_subset(t3, big_list, mph4),
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-```
 
 
 
@@ -158,8 +143,22 @@ bench::mark(
 ```
 
 
+## List subsetting - Extract 100 elements of a `list` by name
 
-## Comparison to R's hashed look-ups in environments
+```{r list-subset}
+bench::mark(
+  `Standard R`           = big_list[t3],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph1)],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph4)],
+  `custom mph method`    = mph_subset(t3, big_list, mph1),
+  `custom mph method`    = mph_subset(t3, big_list, mph4),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+
+
+## Comparison of hashed list subsetting to R's hashed look-ups in environments
 
 ```{r compare-env}
 ee <- as.environment(big_list)
