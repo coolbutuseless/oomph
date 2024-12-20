@@ -100,9 +100,9 @@ bench::mark(
 
 | expression          |   min | median |     itr/sec | mem_alloc |
 |:--------------------|------:|-------:|------------:|----------:|
-| match(t1, nms)      | 250µs |  345µs |    2896.097 |    1.53MB |
-| mph_match(t1, mph1) | 205ns |  287ns | 2692843.497 |    3.97KB |
-| mph_match(t1, mph4) | 205ns |  287ns | 2824600.661 |        0B |
+| match(t1, nms)      | 250µs |  350µs |    2799.844 |    1.53MB |
+| mph_match(t1, mph1) | 205ns |  287ns | 2887741.050 |    3.97KB |
+| mph_match(t1, mph4) | 205ns |  287ns | 2701763.840 |        0B |
 
 ``` r
 bench::mark(
@@ -112,11 +112,11 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression          |      min |   median |      itr/sec | mem_alloc |
-|:--------------------|---------:|---------:|-------------:|----------:|
-| match(t2, nms)      |   1.65ms |   1.78ms |     552.5642 |    3.53MB |
-| mph_match(t2, mph1) | 287.02ns | 410.01ns | 2291186.5842 |        0B |
-| mph_match(t2, mph4) |    328ns | 410.01ns | 2243043.5560 |        0B |
+| expression          |      min | median |      itr/sec | mem_alloc |
+|:--------------------|---------:|-------:|-------------:|----------:|
+| match(t2, nms)      |   1.57ms |  1.8ms |     541.6342 |    3.53MB |
+| mph_match(t2, mph1) |    328ns |  451ns | 2152118.1268 |        0B |
+| mph_match(t2, mph4) | 328.06ns |  410ns | 2181609.3357 |        0B |
 
 ``` r
 bench::mark(
@@ -128,9 +128,9 @@ bench::mark(
 
 | expression          |    min | median |     itr/sec | mem_alloc |
 |:--------------------|-------:|-------:|------------:|----------:|
-| match(t3, nms)      | 1.63ms | 1.78ms |    555.8609 |    3.53MB |
-| mph_match(t3, mph1) |  2.3µs |  2.5µs | 384841.7947 |      448B |
-| mph_match(t3, mph4) | 2.05µs | 2.21µs | 428400.8371 |      448B |
+| match(t3, nms)      | 1.53ms | 1.72ms |    572.7102 |    3.53MB |
+| mph_match(t3, mph1) | 2.34µs |  2.5µs | 378618.0135 |      448B |
+| mph_match(t3, mph4) | 2.01µs | 2.17µs | 444873.5745 |      448B |
 
 ``` r
 bench::mark(
@@ -142,9 +142,9 @@ bench::mark(
 
 | expression          |     min |  median |    itr/sec | mem_alloc |
 |:--------------------|--------:|--------:|-----------:|----------:|
-| match(t4, nms)      |  1.57ms |  1.77ms |   554.0595 |    3.54MB |
-| mph_match(t4, mph1) | 32.14µs | 32.76µs | 29829.8016 |    3.95KB |
-| mph_match(t4, mph4) | 22.67µs | 23.12µs | 42251.9990 |    3.95KB |
+| match(t4, nms)      |  1.54ms |  1.76ms |   549.2129 |    3.54MB |
+| mph_match(t4, mph1) | 32.27µs |  32.8µs | 29532.3482 |    3.95KB |
+| mph_match(t4, mph4) | 22.51µs | 23.41µs | 41376.6055 |    3.95KB |
 
 ## Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -161,11 +161,11 @@ bench::mark(
 
 | expression                        |    min | median |     itr/sec | mem_alloc |
 |:----------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t3\]                  |  1.6ms | 1.81ms |    544.8513 |    3.53MB |
-| big_vector\[mph_match(t3, mph1)\] | 3.03µs | 3.28µs | 285625.0546 |     1.7KB |
-| big_vector\[mph_match(t3, mph4)\] | 2.79µs | 2.99µs | 308091.2447 |     1.7KB |
-| mph_subset(t3, big_vector, mph1)  | 2.75µs | 2.95µs | 325728.6315 |  785.86KB |
-| mph_subset(t3, big_vector, mph4)  | 2.34µs | 2.54µs | 375155.3152 |      448B |
+| big_vector\[t3\]                  | 1.59ms |  1.8ms |    532.5703 |    3.53MB |
+| big_vector\[mph_match(t3, mph1)\] | 3.08µs | 3.32µs | 280377.8390 |     1.7KB |
+| big_vector\[mph_match(t3, mph4)\] | 2.75µs | 2.95µs | 314764.7050 |     1.7KB |
+| mph_subset(t3, big_vector, mph1)  | 2.54µs | 2.71µs | 348243.9138 |  785.86KB |
+| mph_subset(t3, big_vector, mph4)  | 2.25µs | 2.38µs | 394107.8343 |      448B |
 
 ## List subsetting - Extract 100 elements of a `list` by name
 
@@ -180,13 +180,13 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression            |    min | median |     itr/sec | mem_alloc |
-|:----------------------|-------:|-------:|------------:|----------:|
-| Standard R            | 1.62ms | 1.77ms |    551.8103 |    3.53MB |
-| \[\] and mph indexing | 3.44µs | 3.69µs | 253797.6698 |    2.09KB |
-| \[\] and mph indexing |  3.2µs | 3.44µs | 276022.7234 |    2.09KB |
-| custom mph method     | 3.81µs | 4.02µs | 237062.1764 |      848B |
-| custom mph method     |  3.2µs |  3.4µs | 277313.0326 |      848B |
+| expression            |    min | median |    itr/sec | mem_alloc |
+|:----------------------|-------:|-------:|-----------:|----------:|
+| Standard R            | 1.59ms | 1.72ms |    571.662 |    3.53MB |
+| \[\] and mph indexing | 3.48µs | 3.73µs | 255325.233 |    2.09KB |
+| \[\] and mph indexing | 3.16µs | 3.36µs | 280625.266 |    2.09KB |
+| custom mph method     | 3.77µs | 3.98µs | 239653.754 |      848B |
+| custom mph method     | 3.12µs | 3.32µs | 283301.001 |      848B |
 
 ## Comparison of hashed list subsetting to R’s hashed look-ups in environments
 
@@ -204,14 +204,14 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression            |    min |  median |     itr/sec | mem_alloc |
-|:----------------------|-------:|--------:|------------:|----------:|
-| Standard R            | 1.55ms |  1.79ms |    547.6771 |    3.53MB |
-| \[\] and mph indexing | 3.44µs |  3.73µs | 254812.7429 |    2.09KB |
-| \[\] and mph indexing |  3.2µs |   3.4µs | 277596.4925 |    2.09KB |
-| custom mph method     | 3.81µs |  4.02µs | 238649.4639 |      848B |
-| custom mph method     |  3.2µs |   3.4µs | 273530.3028 |      848B |
-| R hashed environment  | 14.1µs | 14.43µs |  67096.3519 |      848B |
+| expression            |     min |  median |     itr/sec | mem_alloc |
+|:----------------------|--------:|--------:|------------:|----------:|
+| Standard R            |  1.59ms |  1.74ms |    561.3185 |    3.53MB |
+| \[\] and mph indexing |  3.48µs |  3.73µs | 257093.8887 |    2.09KB |
+| \[\] and mph indexing |  3.12µs |   3.4µs | 280065.5079 |    2.09KB |
+| custom mph method     |  3.73µs |  3.94µs | 239473.1177 |      848B |
+| custom mph method     |  3.12µs |  3.32µs | 286683.5258 |      848B |
+| R hashed environment  | 13.86µs | 14.23µs |  68116.9291 |      848B |
 
 ## Time taken to build the hash
 
@@ -236,6 +236,80 @@ bench::mark(
 
 | expression        |      min |   median |    itr/sec | mem_alloc |
 |:------------------|---------:|---------:|-----------:|----------:|
-| mph_init(nms1k)   | 174.74µs | 188.44µs | 5186.36568 |      12KB |
-| mph_init(nms10k)  |   1.74ms |   1.82ms |  199.28013 |  167.16KB |
-| mph_init(nms100k) |  19.37ms |  21.21ms |   46.29888 |    1.38MB |
+| mph_init(nms1k)   | 187.78µs | 197.05µs | 4990.80035 |      12KB |
+| mph_init(nms10k)  |   1.87ms |   1.96ms |  138.27884 |  167.16KB |
+| mph_init(nms100k) |  19.82ms |  22.95ms |   42.49533 |    1.38MB |
+
+## Billion Row Challenge indexing
+
+The following example is a part of the [billion row
+challenge](https://github.com/jrosell/1br).
+
+In this example, we are attempting to keep a streaming tally of the
+3-letter codes which are seen.
+
+``` r
+library(oomph)
+library(insitu)
+
+nms <- expand.grid(LETTERS, LETTERS, LETTERS) |> 
+  apply(1, paste0, collapse = "")
+
+counts <- numeric(length(nms))
+names(counts) <- nms
+mph <- mph_init(nms)
+
+set.seed(1)
+random_nms <- sample(nms, 1000)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# updating in bulk
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bench::mark(
+  baseR = {i <- match(random_nms, names(counts)); counts[i] <- counts[i] + 1},
+  oomph = {i <- mph_match(random_nms, mph); counts[i] <- counts[i] + 1},
+  `oomph + insitu` = {br_add(counts, 1, idx =  mph_match(random_nms, mph))},
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+| expression     |     min |  median |   itr/sec | mem_alloc |
+|:---------------|--------:|--------:|----------:|----------:|
+| baseR          | 145.8µs | 172.3µs |  5748.421 |   558.6KB |
+| oomph          |  41.1µs |  42.4µs | 23019.751 |    19.7KB |
+| oomph + insitu |  34.2µs |  34.9µs | 27923.299 |    14.5KB |
+
+``` r
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Updating within a for loop
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bench::mark(
+  baseR = {
+    for (nm in random_nms) {
+      counts[nm] <- counts[nm] + 1
+    }
+  },
+  oomph = {
+    for (nm in random_nms) {
+      i <- mph_match(nm, mph)
+      counts[i] <- counts[i] + 1
+    }
+  },
+  `oomph + insitu` = {
+    for (nm in random_nms) {
+      br_add(counts, 1, idx = mph_match(nm, mph))
+    }
+  },
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+    #> Warning: Some expressions had a GC in every iteration; so filtering is
+    #> disabled.
+
+| expression     |      min |   median |    itr/sec | mem_alloc |
+|:---------------|---------:|---------:|-----------:|----------:|
+| baseR          | 284.32ms | 288.86ms |   3.461934 |   536.6MB |
+| oomph          |   1.43ms |   1.51ms | 546.317735 |    20.2KB |
+| oomph + insitu |   1.42ms |   1.49ms | 577.721057 |    11.3KB |

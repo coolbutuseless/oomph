@@ -197,6 +197,81 @@ bench::mark(
 ```
 
 
+## Billion Row Challenge indexing
+
+The following example is a part of the [billion row challenge](https://github.com/jrosell/1br).
+
+In this example, we are attempting to keep a streaming tally of the 3-letter codes
+which are seen.
+
+```{r}
+library(oomph)
+library(insitu)
+
+nms <- expand.grid(LETTERS, LETTERS, LETTERS) |> 
+  apply(1, paste0, collapse = "")
+
+counts <- numeric(length(nms))
+names(counts) <- nms
+mph <- mph_init(nms)
+
+set.seed(1)
+random_nms <- sample(nms, 1000)
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# updating in bulk
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bench::mark(
+  baseR = {i <- match(random_nms, names(counts)); counts[i] <- counts[i] + 1},
+  oomph = {i <- mph_match(random_nms, mph); counts[i] <- counts[i] + 1},
+  `oomph + insitu` = {br_add(counts, 1, idx =  mph_match(random_nms, mph))},
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Updating within a for loop
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bench::mark(
+  baseR = {
+    for (nm in random_nms) {
+      counts[nm] <- counts[nm] + 1
+    }
+  },
+  oomph = {
+    for (nm in random_nms) {
+      i <- mph_match(nm, mph)
+      counts[i] <- counts[i] + 1
+    }
+  },
+  `oomph + insitu` = {
+    for (nm in random_nms) {
+      br_add(counts, 1, idx = mph_match(nm, mph))
+    }
+  },
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
