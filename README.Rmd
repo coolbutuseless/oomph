@@ -204,7 +204,7 @@ The following example is a part of the [billion row challenge](https://github.co
 In this example, we are attempting to keep a streaming tally of the 3-letter codes
 which are seen.
 
-```{r}
+```{r warning=FALSE}
 library(oomph)
 library(insitu)
 
@@ -223,7 +223,7 @@ random_nms <- sample(nms, 1000)
 # updating in bulk
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 bench::mark(
-  baseR = {i <- match(random_nms, names(counts)); counts[i] <- counts[i] + 1},
+  baseR = {i <- match(random_nms, nms); counts[i] <- counts[i] + 1},
   oomph = {i <- mph_match(random_nms, mph); counts[i] <- counts[i] + 1},
   `oomph + insitu` = {br_add(counts, 1, idx =  mph_match(random_nms, mph))},
   check = FALSE
@@ -236,7 +236,8 @@ bench::mark(
 bench::mark(
   baseR = {
     for (nm in random_nms) {
-      counts[nm] <- counts[nm] + 1
+      i <- match(nm, nms)
+      counts[i] <- counts[i] + 1
     }
   },
   oomph = {
