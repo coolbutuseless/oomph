@@ -28,14 +28,13 @@ uint32_t fnv1a(const char* text) {
 }
 
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define BUCKET_START_CAPACITY 1
 typedef struct {
   int *members;   // integer values of original indexes
-  uint32_t *hash; // the hash of the string at this index
+  uint64_t *hash; // the hash of the string at this index
   char **s;       // a pointer to all the strings
   int *len;       // the lengths of the strings
   int nmembers;   // the number of members
@@ -127,7 +126,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     if (bucket[i].members == NULL) {
       Rf_error("Failed to allocate bucket[%i]", i);
     }
-    bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
+    bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint64_t));
     if (bucket[i].hash == NULL) {
       Rf_error("Failed to allocate hash[%i]", i);
     }
@@ -147,8 +146,12 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Bucket all the strings
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
-    uint32_t h = fnv1a(CHAR(STRING_ELT(s_, i)));
-    uint32_t idx = h % nbuckets;
+    const char *s = CHAR(STRING_ELT(s_, i));
+    // uint32_t h = fnv1a(s);
+    // uint32_t idx = h % nbuckets;
+    uint64_t h = rapidhash(s, strlen(s));
+    uint32_t idx = (uint32_t)(h % (uint64_t)nbuckets);
+    
     bucket[idx].members[bucket[idx].nmembers] = i;
     bucket[idx].hash   [bucket[idx].nmembers] = h;
     bucket[idx].len    [bucket[idx].nmembers] = strlen(CHAR(STRING_ELT(s_, i)));
@@ -157,7 +160,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     if (bucket[idx].nmembers >= bucket[idx].capacity) {
       bucket[idx].capacity *= 2;
       bucket[idx].members = realloc(bucket[idx].members, (size_t)bucket[idx].capacity * sizeof(int));
-      bucket[idx].hash    = realloc(bucket[idx].hash   , (size_t)bucket[idx].capacity * sizeof(uint32_t));
+      bucket[idx].hash    = realloc(bucket[idx].hash   , (size_t)bucket[idx].capacity * sizeof(uint64_t));
       bucket[idx].len     = realloc(bucket[idx].len    , (size_t)bucket[idx].capacity * sizeof(int));
       bucket[idx].s       = realloc(bucket[idx].s      , (size_t)bucket[idx].capacity * sizeof(char *));
     }
@@ -190,7 +193,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     for (int i = 0; i < nbuckets; ++i) {
       Rprintf("[%3i  %s] ", i, bucket[i].nmembers == 1 ? "1" : " ");
       for (int j = 0; j < bucket[i].nmembers; ++j) {
-        Rprintf("%3i ", bucket[i].members[j]);
+        Rprintf("%3i", bucket[i].members[j]);
       }
       Rprintf("\n");
     }
@@ -215,8 +218,10 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
 // Lookup a single string in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
-  uint32_t h = fnv1a(s);
-  uint32_t idx = h % nbuckets;
+  // uint32_t h = fnv1a(s);
+  // uint32_t idx = h % nbuckets;
+  uint64_t h = rapidhash(s, strlen(s));
+  uint32_t idx = (uint32_t)(h % (uint64_t)nbuckets);
   
   if (bucket[idx].nmembers == 0) {
     return -1;
@@ -260,8 +265,10 @@ SEXP mph_match_(SEXP s_, SEXP bucket_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
-    uint32_t h = fnv1a(s);
-    uint32_t idx = h % nbuckets;
+    // uint32_t h = fnv1a(s);
+    // uint32_t idx = h % nbuckets;
+    uint64_t h = rapidhash(s, strlen(s));
+    uint32_t idx = (uint32_t)(h % (uint64_t)nbuckets);
     
     if (bucket[idx].nmembers == 0) {
       res[i] = NA_INTEGER;
