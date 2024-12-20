@@ -22,8 +22,11 @@ library(oomph)
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a technical demonstration of using a *hashmap* to do
+`oomph` is a technical demonstration of using a hash for
 fast named lookups of data in lists and vectors.
+
+Internally this is just a hashmap in C which maps strings to integers.  To R, 
+this appears as a minimal perfect hash where each string maps to its index.
 
 The hashed lookup can be **1000x** faster than R's standard lookup method (depending on 
 number of elements in original object and the number of elements to extract).
@@ -31,7 +34,8 @@ number of elements in original object and the number of elements to extract).
 Next steps:
 
 * This would be much better with a dynamic hash which could be easily updated
-  with new elements
+  with new elements.  Currently if even a single name was added/removed or 
+  changes, then the entire hash would need to be recalculated.
 
 
 ## Installation
@@ -75,9 +79,12 @@ t3  <- sample(nms,  100, replace = TRUE)
 t4  <- sample(nms, 1000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 
+# By default, the number of hash buckets is the same as the number of 
+# strings.  To reduce the possibility of hash collisions (and make lookups
+# faster), the number of hash buckets can be changed using the 'size_factor'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph <- mph_init(nms)
+mph1 <- mph_init(nms)                  # Allocate example length(nms) buckets
+mph4 <- mph_init(nms, size_factor = 4) # Allocate: 4 * length(nms) buckets
 ```
 
 
@@ -87,25 +94,29 @@ mph <- mph_init(nms)
 ```{r match}
 bench::mark(
   match(t1, nms),
-  mph_match(t1, mph),
+  mph_match(t1, mph1),
+  mph_match(t1, mph4),
   relative = TRUE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t2, nms),
-  mph_match(t2, mph),
+  mph_match(t2, mph1),
+  mph_match(t2, mph4),
   relative = TRUE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t3, nms),
-  mph_match(t3, mph),
+  mph_match(t3, mph1),
+  mph_match(t3, mph4),
   relative = TRUE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t4, nms),
-  mph_match(t4, mph),
+  mph_match(t4, mph1),
+  mph_match(t4, mph4),
   relative = TRUE
 )[, 1:5] |> knitr::kable()
 ```
@@ -117,8 +128,10 @@ bench::mark(
 ```{r list-subset}
 bench::mark(
   `Standard R`           = big_list[t3],
-  `[] and mph indexing`  = big_list[mph_match(t3, mph)],
-  `custom mph method`    = mph_subset(t3, big_list, mph),
+  `[] and mph indexing`  = big_list[mph_match(t3, mph1)],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph4)],
+  `custom mph method`    = mph_subset(t3, big_list, mph1),
+  `custom mph method`    = mph_subset(t3, big_list, mph4),
   check = FALSE
 )[, 1:5] |> knitr::kable()
 ```
@@ -130,8 +143,10 @@ bench::mark(
 ```{r vector-subset}
 bench::mark(
   big_vector[t3],
-  big_vector[mph_match(t3, mph)],
-  mph_subset(t3, big_vector, mph),
+  big_vector[mph_match(t3, mph1)],
+  big_vector[mph_match(t3, mph4)],
+  mph_subset(t3, big_vector, mph1),
+  mph_subset(t3, big_vector, mph4),
   check = F
 )[, 1:5] |> knitr::kable()
 ```
