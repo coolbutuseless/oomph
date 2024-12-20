@@ -2,26 +2,26 @@
 % Please edit documentation in R/mph.R
 \name{mph_subset}
 \alias{mph_subset}
-\title{Subset an integer vector, numeric vector or list using a hashed index}
+\title{Subset an R object using a hashed index}
 \usage{
-mph_subset(elems, x, mph)
+mph_subset(nms, x, mph)
 }
 \arguments{
-\item{elems}{names of elements to extract}
+\item{nms}{names of elements to extract}
 
-\item{x}{Object to be subset. One of: integer vector, numeric vector or list}
+\item{x}{Object to subset. Either list or vector (integer, numeric or character)}
 
-\item{mph}{hash obbject}
+\item{mph}{hash object created by \code{mph_init()}}
 }
 \value{
 Subset of elements of x
 }
 \description{
-Subset an integer vector, numeric vector or list using a hashed index
+Subset an R object using a hashed index
 }
 \examples{
 mph <- mph_init(letters)
-values <- 2^seq_along(letters)
+values <- LETTERS
 mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
 mph_subset(c('h', 'e', 'l', 'l', 'o'), values, mph)
 }

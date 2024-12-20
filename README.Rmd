@@ -22,20 +22,26 @@ library(oomph)
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a technical demonstration of using a hash for
-fast named lookups of data in lists and vectors.
+`oomph` is a packaged for fast named look-up of data in static lists and vectors.
 
-Internally this is just a hashmap in C which maps strings to integers.  To R, 
-this appears as a minimal perfect hash where each string maps to its index.
+Internally this uses a hash-map in C to map strings to integers.  In R, 
+this appears as a minimal perfect hash where each string maps to its index, 
+and unknown strings return `NA`
 
-The hashed lookup can be **1000x** faster than R's standard lookup method (depending on 
+The hashed look-up can be **1000x** faster than R's standard look-up method (depending on 
 number of elements in original object and the number of elements to extract).
 
-Next steps:
 
-* This would be much better with a dynamic hash which could be easily updated
-  with new elements.  Currently if even a single name was added/removed or 
-  changes, then the entire hash would need to be recalculated.
+## What's in the box
+
+* `mph <- mph_init(s, size_factor)` initialise a hash with the given set of strings
+    * Using a larger `size_factor` (than the default of `1`) decreases the number 
+      of hash collisions, and can make other operations faster at the cost or
+      more memory being allocated.
+* `mph_match(s, mph)` find the indices of the strings `s` (equivalent to R's `match()`)
+* `mph_subset(nms, x, mph)` extract named `elems` from vector/list object `s` using 
+  the given hash object.
+
 
 
 ## Installation
@@ -80,7 +86,7 @@ t4  <- sample(nms, 1000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # By default, the number of hash buckets is the same as the number of 
-# strings.  To reduce the possibility of hash collisions (and make lookups
+# strings.  To reduce the possibility of hash collisions (and make look-ups
 # faster), the number of hash buckets can be changed using the 'size_factor'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mph1 <- mph_init(nms)                  # Allocate example length(nms) buckets
@@ -150,5 +156,49 @@ bench::mark(
   check = F
 )[, 1:5] |> knitr::kable()
 ```
+
+
+
+## Comparison to R's hashed look-ups in environments
+
+```{r compare-env}
+ee <- as.environment(big_list)
+
+bench::mark(
+  `Standard R`           = big_list[t3],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph1)],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph4)],
+  `custom mph method`    = mph_subset(t3, big_list, mph1),
+  `custom mph method`    = mph_subset(t3, big_list, mph4),
+  `R hashed environment` = mget(t3, ee),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+## Time taken to build the hash
+
+```{r}
+set.seed(1)
+N <- 1000
+nms1k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+N <- 10000
+nms10k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+N <- 100000
+nms100k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+bench::mark(
+  mph_init(nms1k),
+  mph_init(nms10k),
+  mph_init(nms100k),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+
+```
+
+
+
+
 
 

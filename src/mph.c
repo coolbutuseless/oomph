@@ -72,7 +72,10 @@ static void bucket_extptr_finalizer(SEXP ptr_) {
   bucket_t *bucket = (bucket_t *)R_ExternalPtrAddr(ptr_);
   
   if (bucket != NULL) {
-    uint32_t nbuckets = (uint32_t)Rf_asInteger(R_ExternalPtrTag(ptr_));
+    SEXP hash_info_ = R_ExternalPtrTag(ptr_);
+    uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
+    // int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
+    
     for (int i = 0; i < nbuckets; ++i) {
       free(bucket[i].members);
       free(bucket[i].hash);
@@ -89,20 +92,23 @@ static void bucket_extptr_finalizer(SEXP ptr_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialise the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_init_(SEXP x_, SEXP size_factor_, SEXP verbosity_) {
+SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Size factor
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   double size_factor = Rf_asReal(size_factor_);
-  if (size_factor < 0.5 || size_factor > 100) {
+  if (size_factor < 0.2 || size_factor > 100) {
     Rf_error("Bad size factor. Should be in range [0.5, 100], but got: %.1f", size_factor);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Setup the intermediate buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  uint32_t nbuckets = (uint32_t)Rf_length(x_) * size_factor;
+  uint32_t nbuckets = (uint32_t)Rf_length(s_) * size_factor;
+  if (nbuckets < 1) {
+    Rf_error("Hash with zero buckets not possible");
+  }
   bucket_t *bucket = calloc((size_t)nbuckets, sizeof(bucket_t));
   
   if (bucket == NULL) {
@@ -138,13 +144,13 @@ SEXP mph_init_(SEXP x_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Bucket all the strings
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  for (int i = 0; i < Rf_length(x_); ++i) {
-    uint32_t h = fnv1a(CHAR(STRING_ELT(x_, i)));
+  for (int i = 0; i < Rf_length(s_); ++i) {
+    uint32_t h = fnv1a(CHAR(STRING_ELT(s_, i)));
     uint32_t idx = h % nbuckets;
     bucket[idx].members[bucket[idx].nmembers] = i;
     bucket[idx].hash   [bucket[idx].nmembers] = h;
-    bucket[idx].len    [bucket[idx].nmembers] = strlen(CHAR(STRING_ELT(x_, i)));
-    bucket[idx].s      [bucket[idx].nmembers] = (char *)CHAR(STRING_ELT(x_, i));
+    bucket[idx].len    [bucket[idx].nmembers] = strlen(CHAR(STRING_ELT(s_, i)));
+    bucket[idx].s      [bucket[idx].nmembers] = (char *)CHAR(STRING_ELT(s_, i));
     bucket[idx].nmembers += 1;
     if (bucket[idx].nmembers >= bucket[idx].capacity) {
       bucket[idx].capacity *= 2;
@@ -191,8 +197,11 @@ SEXP mph_init_(SEXP x_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create an external pointer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP nbuckets_ = PROTECT(Rf_ScalarInteger(nbuckets));
-  SEXP ptr_ = PROTECT(R_MakeExternalPtr(bucket, nbuckets_, x_));
+  SEXP hash_info_ = PROTECT(Rf_allocVector(INTSXP, 2));
+  INTEGER(hash_info_)[0] = nbuckets;
+  INTEGER(hash_info_)[1] = Rf_length(s_);
+  
+  SEXP ptr_ = PROTECT(R_MakeExternalPtr(bucket, hash_info_, s_));
   R_RegisterCFinalizer(ptr_, bucket_extptr_finalizer);
   Rf_setAttrib(ptr_, R_ClassSymbol, Rf_mkString("bucket"));
   UNPROTECT(2);
@@ -233,20 +242,21 @@ int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Hashmap match
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_match_(SEXP x_, SEXP bucket_) {
+SEXP mph_match_(SEXP s_, SEXP bucket_) {
   
   bucket_t *bucket = external_ptr_to_buckets(bucket_);
-  uint32_t nbuckets = (uint32_t)Rf_asInteger(R_ExternalPtrTag(bucket_));
-  // SEXP orig_strings_ = R_ExternalPtrProtected(bucket_);
-  
-  SEXP res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(x_)));
+  SEXP hash_info_ = R_ExternalPtrTag(bucket_);
+  uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
+  // int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
+
+  SEXP res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(s_)));
   int *res = INTEGER(res_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Test against original
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  for (int i = 0; i < Rf_length(x_); ++i) {
-    const char *s = CHAR(STRING_ELT(x_, i));
+  for (int i = 0; i < Rf_length(s_); ++i) {
+    const char *s = CHAR(STRING_ELT(s_, i));
     
     uint32_t h = fnv1a(s);
     uint32_t idx = h % nbuckets;
@@ -282,24 +292,26 @@ SEXP mph_match_(SEXP x_, SEXP bucket_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Subset
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_subset_(SEXP elems_, SEXP x_, SEXP bucket_) {
+SEXP mph_subset_(SEXP nms_, SEXP x_, SEXP bucket_) {
   
-  bucket_t *bucket = external_ptr_to_buckets(bucket_);
-  uint32_t nbuckets = (uint32_t)Rf_asInteger(R_ExternalPtrTag(bucket_));
+  bucket_t *bucket  = external_ptr_to_buckets(bucket_);
+  SEXP hash_info_   = R_ExternalPtrTag(bucket_);
+  uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
+  int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
 
-  // if (Rf_length(x_) != mphash->nkeys) {
-  //   Rf_error("Length(x) = %i does not match number of keys %i", 
-  //            (int)Rf_length(x_), mphash->nkeys);
-  // }
+  if (Rf_length(x_) != hash_size) {
+    Rf_error("Length(x) = %i does not match number of keys %i",
+             (int)Rf_length(x_), hash_size);
+  }
   
   
   SEXP res_ = R_NilValue;
   
   if (TYPEOF(x_) == VECSXP) {
-    res_ = PROTECT(Rf_allocVector(VECSXP, Rf_length(elems_)));
+    res_ = PROTECT(Rf_allocVector(VECSXP, Rf_length(nms_)));
     
-    for (int i = 0; i < Rf_length(elems_); i++) {
-      const char *s = CHAR(STRING_ELT(elems_, i));
+    for (int i = 0; i < Rf_length(nms_); i++) {
+      const char *s = CHAR(STRING_ELT(nms_, i));
       int idx = mph_lookup(s, bucket, nbuckets);
       if (idx < 0) {
         SET_VECTOR_ELT(res_, i, R_NilValue);
@@ -310,10 +322,10 @@ SEXP mph_subset_(SEXP elems_, SEXP x_, SEXP bucket_) {
     
   } else if (Rf_isInteger(x_)) {
     int *xptr = INTEGER(x_);
-    res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(elems_)));
+    res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(nms_)));
     int *ptr = INTEGER(res_);
-    for (int i = 0; i < Rf_length(elems_); i++) {
-      const char *s = CHAR(STRING_ELT(elems_, i));
+    for (int i = 0; i < Rf_length(nms_); i++) {
+      const char *s = CHAR(STRING_ELT(nms_, i));
       int idx = mph_lookup(s, bucket, nbuckets);
       if (idx < 0) {
         ptr[i] = NA_INTEGER;
@@ -323,15 +335,26 @@ SEXP mph_subset_(SEXP elems_, SEXP x_, SEXP bucket_) {
     }
   } else if (Rf_isReal(x_)) {
     double *xptr = REAL(x_);
-    res_ = PROTECT(Rf_allocVector(REALSXP, Rf_length(elems_)));
+    res_ = PROTECT(Rf_allocVector(REALSXP, Rf_length(nms_)));
     double *ptr = REAL(res_);
-    for (int i = 0; i < Rf_length(elems_); i++) {
-      const char *s = CHAR(STRING_ELT(elems_, i));
+    for (int i = 0; i < Rf_length(nms_); i++) {
+      const char *s = CHAR(STRING_ELT(nms_, i));
       int idx = mph_lookup(s, bucket, nbuckets);
       if (idx < 0) {
         ptr[i] = NA_REAL;
       } else {
         ptr[i] = xptr[idx];
+      }
+    }
+  } else if (TYPEOF(x_) == STRSXP) {
+    res_ = PROTECT(Rf_allocVector(STRSXP, Rf_length(nms_)));
+    for (int i = 0; i < Rf_length(nms_); i++) {
+      const char *s = CHAR(STRING_ELT(nms_, i));
+      int idx = mph_lookup(s, bucket, nbuckets);
+      if (idx < 0) {
+        SET_STRING_ELT(res_, i, NA_STRING);
+      } else {
+        SET_STRING_ELT(res_, i, STRING_ELT(x_, idx));
       }
     }
   } else {
@@ -341,4 +364,13 @@ SEXP mph_subset_(SEXP elems_, SEXP x_, SEXP bucket_) {
   UNPROTECT(1);
   return res_;
 }
+
+
+
+
+
+
+
+
+
 

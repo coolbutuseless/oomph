@@ -2,23 +2,24 @@
 % Please edit documentation in R/mph.R
 \name{mph_match}
 \alias{mph_match}
-\title{Find the integer index of string elements}
+\title{Find the integer index of string elements.}
 \usage{
 mph_match(s, mph)
 }
 \arguments{
-\item{s}{strings to find the index for}
+\item{s}{strings}
 
-\item{mph}{minimal perfect hash object created by \code{mph_init()}}
+\item{mph}{hash object created by \code{mph_init()}}
 }
 \value{
-integer vector of indicies of strings within the mph object. 
-   NA if string is not a member of \code{mph} object.
+integer vector of indexes for each of the strings. 
+   NA if string is not a member.
 }
 \description{
-Find the integer index of string elements
+This is equivalent to R's \code{match()} function.
 }
 \examples{
 mph <- mph_init(letters)
 mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
+match(c('h', 'e', 'l', 'l', 'o'), letters)
 }

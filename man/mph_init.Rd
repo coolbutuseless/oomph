@@ -2,23 +2,25 @@
 % Please edit documentation in R/mph.R
 \name{mph_init}
 \alias{mph_init}
-\title{Initialise a minimal perfect hash with the given set of strings}
+\title{Initialise a hash object with the given set of strings}
 \usage{
 mph_init(s, size_factor = 1, verbosity = 0L)
 }
 \arguments{
-\item{s}{character vector of all possible strings. Duplicates and NAs not 
-allowed.  String length must be less than 255 characters.}
+\item{s}{character vector of all possible strings. Duplicates and NAs are not 
+allowed.}
 
-\item{size_factor}{default; 1}
+\item{size_factor}{Adjusts the internal number of hash slots. Default: 1. Increasing 
+this factor lowers the chance of hash collisions and may speed up the
+overall performance.}
 
-\item{verbosity}{default: 0}
+\item{verbosity}{Default: 0}
 }
 \value{
-mph object
+Hash object
 }
 \description{
-Initialise a minimal perfect hash with the given set of strings
+Initialise a hash object with the given set of strings
 }
 \examples{
 mph <- mph_init(letters)

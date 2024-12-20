@@ -9,23 +9,28 @@
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a technical demonstration of using a hash for fast named
-lookups of data in lists and vectors.
+`oomph` is a packaged for fast named look-up of data in static lists and
+vectors.
 
-Internally this is just a hashmap in C which maps strings to integers.
-To R, this appears as a minimal perfect hash where each string maps to
-its index.
+Internally this uses a hash-map in C to map strings to integers. In R,
+this appears as a minimal perfect hash where each string maps to its
+index, and unknown strings return `NA`
 
-The hashed lookup can be **1000x** faster than R’s standard lookup
+The hashed look-up can be **1000x** faster than R’s standard look-up
 method (depending on number of elements in original object and the
 number of elements to extract).
 
-Next steps:
+## What’s in the box
 
-- This would be much better with a dynamic hash which could be easily
-  updated with new elements. Currently if even a single name was
-  added/removed or changes, then the entire hash would need to be
-  recalculated.
+- `mph <- mph_init(s, size_factor)` initialise a hash with the given set
+  of strings
+  - Using a larger `size_factor` (than the default of `1`) decreases the
+    number of hash collisions, and can make other operations faster at
+    the cost or more memory being allocated.
+- `mph_match(s, mph)` find the indices of the strings `s` (equivalent to
+  R’s `match()`)
+- `mph_subset(nms, x, mph)` extract named `elems` from vector/list
+  object `s` using the given hash object.
 
 ## Installation
 
@@ -74,7 +79,7 @@ t4  <- sample(nms, 1000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # By default, the number of hash buckets is the same as the number of 
-# strings.  To reduce the possibility of hash collisions (and make lookups
+# strings.  To reduce the possibility of hash collisions (and make look-ups
 # faster), the number of hash buckets can be changed using the 'size_factor'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mph1 <- mph_init(nms)                  # Allocate example length(nms) buckets
@@ -92,11 +97,11 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression          |         min |   median |  itr/sec | mem_alloc |
-|:--------------------|------------:|---------:|---------:|----------:|
-| match(t1, nms)      | 1219.756388 | 1192.052 |   1.0000 |       Inf |
-| mph_match(t1, mph1) |    1.000000 |    1.000 | 921.1321 |       Inf |
-| mph_match(t1, mph4) |    1.199886 |    1.000 | 898.2117 |       NaN |
+| expression          |         min |   median |   itr/sec | mem_alloc |
+|:--------------------|------------:|---------:|----------:|----------:|
+| match(t1, nms)      | 1221.356332 | 1188.623 |    1.0000 |       Inf |
+| mph_match(t1, mph1) |    1.199886 |    1.000 | 1030.4308 |       Inf |
+| mph_match(t1, mph4) |    1.000000 |    1.000 |  944.9693 |       NaN |
 
 ``` r
 bench::mark(
@@ -107,11 +112,11 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression          |        min |   median |  itr/sec | mem_alloc |
-|:--------------------|-----------:|---------:|---------:|----------:|
-| match(t2, nms)      | 5643.85358 | 4277.996 |    1.000 |       Inf |
-| mph_match(t2, mph1) |    1.14277 |    1.000 | 4051.918 |       NaN |
-| mph_match(t2, mph4) |    1.00000 |    1.000 | 4005.527 |       NaN |
+| expression          |      min |   median |  itr/sec | mem_alloc |
+|:--------------------|---------:|---------:|---------:|----------:|
+| match(t2, nms)      | 4530.498 | 4219.248 |    1.000 |       Inf |
+| mph_match(t2, mph1) |    1.000 |    1.000 | 4153.154 |       NaN |
+| mph_match(t2, mph4) |    1.000 |    1.000 | 4024.667 |       NaN |
 
 ``` r
 bench::mark(
@@ -124,9 +129,9 @@ bench::mark(
 
 | expression          |        min |     median |  itr/sec | mem_alloc |
 |:--------------------|-----------:|-----------:|---------:|----------:|
-| match(t3, nms)      | 780.354070 | 812.616613 |   1.0000 |  8255.679 |
-| mph_match(t3, mph1) |   1.119992 |   1.150912 | 692.7109 |     1.000 |
-| mph_match(t3, mph4) |   1.000000 |   1.000000 | 757.7391 |     1.000 |
+| match(t3, nms)      | 699.874553 | 779.025200 |   1.0000 |  8255.679 |
+| mph_match(t3, mph1) |   1.120024 |   1.111161 | 672.1334 |     1.000 |
+| mph_match(t3, mph4) |   1.000000 |   1.000000 | 757.3841 |     1.000 |
 
 ``` r
 bench::mark(
@@ -139,9 +144,9 @@ bench::mark(
 
 | expression          |       min |    median |  itr/sec | mem_alloc |
 |:--------------------|----------:|----------:|---------:|----------:|
-| match(t4, nms)      | 68.517174 | 76.114719 |  1.00000 |  916.3399 |
-| mph_match(t4, mph1) |  1.405749 |  1.403881 | 53.76611 |    1.0000 |
-| mph_match(t4, mph4) |  1.000000 |  1.000000 | 72.01826 |    1.0000 |
+| match(t4, nms)      | 66.964124 | 69.722616 |  1.00000 |  916.3399 |
+| mph_match(t4, mph1) |  1.404294 |  1.424091 | 47.77987 |    1.0000 |
+| mph_match(t4, mph4) |  1.000000 |  1.000000 | 67.01958 |    1.0000 |
 
 ## List subsetting - Extract 100 elements of a `list` by name
 
@@ -156,13 +161,13 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression            |    min | median |     itr/sec | mem_alloc |
-|:----------------------|-------:|-------:|------------:|----------:|
-| Standard R            |  1.6ms | 1.77ms |    555.6639 |    3.53MB |
-| \[\] and mph indexing |  3.4µs | 3.69µs | 254054.8837 |    2.09KB |
-| \[\] and mph indexing |  3.2µs |  3.4µs | 271543.3681 |    2.09KB |
-| custom mph method     | 3.81µs | 4.02µs | 238153.1225 |    4.95KB |
-| custom mph method     | 3.16µs | 3.36µs | 278159.6465 |      848B |
+| expression            |    min | median |    itr/sec | mem_alloc |
+|:----------------------|-------:|-------:|-----------:|----------:|
+| Standard R            | 1.53ms | 1.82ms |    543.995 |    3.53MB |
+| \[\] and mph indexing |  3.4µs | 3.65µs | 256173.648 |    2.09KB |
+| \[\] and mph indexing | 3.16µs | 3.36µs | 274864.240 |    2.09KB |
+| custom mph method     | 3.85µs | 4.06µs | 239369.482 |    4.95KB |
+| custom mph method     | 3.24µs | 3.44µs | 275758.824 |      848B |
 
 ## Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -179,8 +184,60 @@ bench::mark(
 
 | expression                        |    min | median |     itr/sec | mem_alloc |
 |:----------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t3\]                  | 1.54ms | 1.78ms |    552.4683 |    3.53MB |
-| big_vector\[mph_match(t3, mph1)\] | 3.03µs | 3.28µs | 288699.7940 |     1.7KB |
-| big_vector\[mph_match(t3, mph4)\] | 2.79µs | 2.95µs | 316469.7965 |     1.7KB |
-| mph_subset(t3, big_vector, mph1)  | 2.71µs | 2.87µs | 325130.2797 |  781.73KB |
-| mph_subset(t3, big_vector, mph4)  | 2.34µs | 2.46µs | 379264.2628 |      448B |
+| big_vector\[t3\]                  | 1.47ms | 1.76ms |    562.8329 |    3.53MB |
+| big_vector\[mph_match(t3, mph1)\] | 2.99µs | 3.24µs | 290091.6944 |     1.7KB |
+| big_vector\[mph_match(t3, mph4)\] | 2.79µs | 2.99µs | 315578.3269 |     1.7KB |
+| mph_subset(t3, big_vector, mph1)  | 2.71µs | 2.91µs | 326976.6685 |  781.73KB |
+| mph_subset(t3, big_vector, mph4)  | 2.38µs |  2.5µs | 383809.1788 |      448B |
+
+## Comparison to R’s hashed look-ups in environments
+
+``` r
+ee <- as.environment(big_list)
+
+bench::mark(
+  `Standard R`           = big_list[t3],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph1)],
+  `[] and mph indexing`  = big_list[mph_match(t3, mph4)],
+  `custom mph method`    = mph_subset(t3, big_list, mph1),
+  `custom mph method`    = mph_subset(t3, big_list, mph4),
+  `R hashed environment` = mget(t3, ee),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+| expression            |     min |  median |     itr/sec | mem_alloc |
+|:----------------------|--------:|--------:|------------:|----------:|
+| Standard R            |  1.66ms |  1.77ms |    552.7683 |    3.53MB |
+| \[\] and mph indexing |   3.4µs |  3.65µs | 260462.2922 |    2.09KB |
+| \[\] and mph indexing |   3.2µs |   3.4µs | 274476.6011 |    2.09KB |
+| custom mph method     |  3.85µs |  4.06µs | 233904.9778 |      848B |
+| custom mph method     |  3.24µs |  3.44µs | 277896.9510 |      848B |
+| R hashed environment  | 13.86µs | 14.23µs |  68266.4413 |      848B |
+
+## Time taken to build the hash
+
+``` r
+set.seed(1)
+N <- 1000
+nms1k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+N <- 10000
+nms10k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+N <- 100000
+nms100k <- vapply(seq(N), \(i) paste(sample(c(letters, LETTERS, 0:9), 10, T), collapse = ""), character(1))
+
+bench::mark(
+  mph_init(nms1k),
+  mph_init(nms10k),
+  mph_init(nms100k),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+| expression        |      min |  median |    itr/sec | mem_alloc |
+|:------------------|---------:|--------:|-----------:|----------:|
+| mph_init(nms1k)   | 172.94µs | 182.9µs | 4341.87577 |      12KB |
+| mph_init(nms10k)  |   1.74ms |   1.8ms |  236.40751 |  167.16KB |
+| mph_init(nms100k) |  19.02ms |  20.8ms |   47.48566 |    1.38MB |
