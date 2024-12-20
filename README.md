@@ -9,19 +9,17 @@
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a technical demonstration of using a *minimal perfect hashing
-function* to do fast named lookups of data in lists and vectors.
+`oomph` is a technical demonstration of using a *hashmap* to do fast
+named lookups of data in lists and vectors.
 
 The hashed lookup can be **1000x** faster than R’s standard lookup
-method (depending on number of elements to extract).
+method (depending on number of elements in original object and the
+number of elements to extract).
 
 Next steps:
 
-- This would be much better with a dynamic minimal perfect hash which
+- This would be much better with a dynamic hash which could be easily
   updated with new elements
-- The included mph code has some issues with large numbers of input
-  strings. I think it may have something to do with large stack using
-  with the recursive calling of `graph.c / cyclicdeledge()`
 
 ## Installation
 
@@ -84,10 +82,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |     min |   median |  itr/sec | mem_alloc |
-|:-------------------|--------:|---------:|---------:|----------:|
-| match(t1, nms)     | 1020.06 | 1069.187 |   1.0000 |  394.4094 |
-| mph_match(t1, mph) |    1.00 |    1.000 | 923.3507 |    1.0000 |
+| expression         |      min |   median |  itr/sec | mem_alloc |
+|:-------------------|---------:|---------:|---------:|----------:|
+| match(t1, nms)     | 1219.156 | 1221.335 |   1.0000 |  394.4094 |
+| mph_match(t1, mph) |    1.000 |    1.000 | 956.1839 |    1.0000 |
 
 ``` r
 bench::mark(
@@ -99,8 +97,8 @@ bench::mark(
 
 | expression         |      min |   median |  itr/sec | mem_alloc |
 |:-------------------|---------:|---------:|---------:|----------:|
-| match(t2, nms)     | 3909.914 | 3725.635 |    1.000 |       Inf |
-| mph_match(t2, mph) |    1.000 |    1.000 | 3710.261 |       NaN |
+| match(t2, nms)     | 4675.873 | 4311.395 |    1.000 |       Inf |
+| mph_match(t2, mph) |    1.000 |    1.000 | 4055.791 |       NaN |
 
 ``` r
 bench::mark(
@@ -112,8 +110,8 @@ bench::mark(
 
 | expression         |      min |   median |  itr/sec | mem_alloc |
 |:-------------------|---------:|---------:|---------:|----------:|
-| match(t3, nms)     | 610.9976 | 656.6756 |   1.0000 |  8255.679 |
-| mph_match(t3, mph) |   1.0000 |   1.0000 | 643.6448 |     1.000 |
+| match(t3, nms)     | 643.6262 | 709.1614 |   1.0000 |  8255.679 |
+| mph_match(t3, mph) |   1.0000 |   1.0000 | 683.6333 |     1.000 |
 
 ``` r
 bench::mark(
@@ -125,8 +123,8 @@ bench::mark(
 
 | expression         |      min |   median |  itr/sec | mem_alloc |
 |:-------------------|---------:|---------:|---------:|----------:|
-| match(t4, nms)     | 55.27912 | 61.32186 |  1.00000 |  916.3399 |
-| mph_match(t4, mph) |  1.00000 |  1.00000 | 59.49752 |    1.0000 |
+| match(t4, nms)     | 51.78675 | 54.70721 |  1.00000 |  916.3399 |
+| mph_match(t4, mph) |  1.00000 |  1.00000 | 54.09437 |    1.0000 |
 
 ## List subsetting - Extract 100 elements of a `list` by name
 
@@ -134,16 +132,16 @@ bench::mark(
 bench::mark(
   `Standard R`           = big_list[t3],
   `[] and mph indexing`  = big_list[mph_match(t3, mph)],
-  `custom mph method`    = mph_subset(big_list, t3, mph),
+  `custom mph method`    = mph_subset(t3, big_list, mph),
   check = FALSE
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression            |    min | median |    itr/sec | mem_alloc |
-|:----------------------|-------:|-------:|-----------:|----------:|
-| Standard R            | 1.63ms | 1.84ms |    531.951 |    3.53MB |
-| \[\] and mph indexing |  3.9µs | 4.14µs | 227241.388 |    2.09KB |
-| custom mph method     | 3.48µs | 3.69µs | 254917.586 |    4.95KB |
+| expression            |    min | median |     itr/sec | mem_alloc |
+|:----------------------|-------:|-------:|------------:|----------:|
+| Standard R            | 1.55ms | 1.78ms |    551.1629 |    3.53MB |
+| \[\] and mph indexing | 3.44µs | 3.69µs | 246339.6714 |    2.09KB |
+| custom mph method     | 3.85µs | 4.06µs | 231660.9440 |    4.95KB |
 
 ## Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -151,28 +149,13 @@ bench::mark(
 bench::mark(
   big_vector[t3],
   big_vector[mph_match(t3, mph)],
-  mph_subset(big_vector, t3, mph),
+  mph_subset(t3, big_vector, mph),
   check = F
 )[, 1:5] |> knitr::kable()
 ```
 
 | expression                       |    min | median |     itr/sec | mem_alloc |
 |:---------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t3\]                 | 1.63ms | 1.81ms |    544.4496 |    3.53MB |
-| big_vector\[mph_match(t3, mph)\] | 3.44µs | 3.69µs | 256396.5572 |     1.7KB |
-| mph_subset(big_vector, t3, mph)  | 2.79µs | 2.95µs | 321624.1745 |  781.73KB |
-
-## Creating the C code for the minimal perfect hash if using ‘mph’ on the command line.
-
-There are a number of programs which will produce C code to do minimal
-perfect hashing of a list of strings e.g. `gperf`, `cmph`.
-
-I chose `mph` as described in [A Family of Perfect Hashing
-Methods(pdf)](https://staff.itee.uq.edu.au/havas/TR0242.pdf)
-
-- Download and compile
-  \[<http://www.ibiblio.org/pub/Linux/devel/lang/c/mph-1.2.tar.gz>\]
-- In R: `writeLines(colors(), "input.txt")`
-- On the command line: `mph < input.txt | emitc > hash.c`
-- Incorporate the `hash.c` code into this package and add the
-  `col_to_rgb()` wrapper which uses it.
+| big_vector\[t3\]                 | 1.62ms | 1.76ms |    554.0347 |    3.53MB |
+| big_vector\[mph_match(t3, mph)\] | 3.08µs | 3.32µs | 284129.7080 |     1.7KB |
+| mph_subset(t3, big_vector, mph)  | 2.79µs | 2.95µs | 323627.9774 |  781.73KB |

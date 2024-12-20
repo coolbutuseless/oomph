@@ -1,23 +1,17 @@
 Package: oomph
 Type: Package
-Title: Order-Preserving Minimal Perfect Hash
-Version: 0.1.0
+Title: Fast Named Subsetting and Matching Using a Hash
+Version: 0.1.1
 Authors@R: c(
-    person("Mike", "Cheng", , "mikefc@coolbutuseless.com", role = c("aut", "cre", "cph")),
-    person("Taj", "Khattra", role = c("aut", "cph"), comment = "Author and copyright holder for 
-    original 'mph' source code used in this package"))
+    person("Mike", "Cheng", , "mikefc@coolbutuseless.com", role = c("aut", "cre", "cph")))
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
 Description: Many data structures can be indexed by a string name e.g. lists, 
    atomic vectors.  Given a vector of names (e.g. the names of elements of a list), 
    this package provides a very fast technique for deriving the index of the element
-   associated with this name. The hash derivation is based upon code by Majewski et al (1996) 
-   "A Family of Perfect Hashing Methods" <doi:10.1093/comjnl/39.6.547>.
+   associated with this name.
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-Copyright: A modified copy of the 'mph' C code is included in this package.
-    This code is Copyright (c) 1996 by Taj Khattra. See COPYRIGHTS file for more 
-    details.

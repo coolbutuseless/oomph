@@ -4,13 +4,16 @@
 #' 
 #' @param s character vector of all possible strings. Duplicates and NAs not 
 #'    allowed.  String length must be less than 255 characters.
+#' @param size_factor default; 1
+#' @param verbosity default: 0
+#' 
 #' @return mph object
 #' @examples
 #' mph <- mph_init(letters)
 #' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_init <- function(s) {
+mph_init <- function(s, size_factor = 1, verbosity = 0L) {
   
   stopifnot(exprs = {
     is.character(s)
@@ -22,7 +25,7 @@ mph_init <- function(s) {
     !anyDuplicated(s)
   })
   
-  .Call(mph_init_, s)
+  .Call(mph_init_, s, size_factor, verbosity)
 }
 
 
@@ -40,7 +43,7 @@ mph_init <- function(s) {
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mph_match <- function(s, mph) {
-  .Call(mph_hash_, mph, s)
+  .Call(mph_match_, s, mph)
 }
 
 
@@ -48,18 +51,18 @@ mph_match <- function(s, mph) {
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Subset an integer vector, numeric vector or list using a hashed index 
 #' 
-#' @param x integer vector, numeric vector or list
-#' @param s strings to search for
-#' @param mph minimal perfect hash of string population
+#' @param elems names of elements to extract
+#' @param x Object to be subset. One of: integer vector, numeric vector or list
+#' @param mph hash obbject
 #' @return Subset of elements of x
 #' @examples
 #' mph <- mph_init(letters)
-#' value <- 2^seq_along(letters)
+#' values <- 2^seq_along(letters)
 #' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
-#' mph_subset(value, c('h', 'e', 'l', 'l', 'o'), mph)
+#' mph_subset(c('h', 'e', 'l', 'l', 'o'), values, mph)
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_subset <- function(x, s, mph) {
-  .Call(mph_subset_, x, mph, s)
+mph_subset <- function(elems, x, mph) {
+  .Call(mph_subset_, elems, x, mph)
 }
 
