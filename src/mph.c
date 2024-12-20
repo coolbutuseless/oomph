@@ -258,118 +258,13 @@ SEXP mph_match_(SEXP s_, SEXP bucket_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
-    uint32_t h = fnv1a(s);
-    uint32_t idx = h % nbuckets;
-    
-    if (bucket[idx].nmembers == 0) {
-      res[i] = NA_INTEGER;
-    } else if (bucket[idx].nmembers == 1) {
-      if (bucket[idx].hash[0] == h && memcmp(s, bucket[idx].s[0], bucket[idx].len[0]) == 0) {
-        res[i] = bucket[idx].members[0] + 1;
-      } else {
-        res[i] = NA_INTEGER;
-      }
-    } else {
-      bool found = false;
-      for (int j = 0; j < bucket[idx].nmembers; ++j) {
-        if (bucket[idx].hash[j] == h && memcmp(s, bucket[idx].s[j], bucket[idx].len[j]) == 0) {
-          res[i] = bucket[idx].members[j] + 1;
-          found = true;
-          break;
-        }
-      }
-      if (!found) res[i] = NA_INTEGER;
-    }
+    int idx = mph_lookup(s, bucket, nbuckets);
+    res[i] = idx < 0 ? NA_INTEGER : idx + 1;
   }
   
   UNPROTECT(1);
   return res_;
 }
-
-
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Subset
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_subset_(SEXP nms_, SEXP x_, SEXP bucket_) {
-  
-  bucket_t *bucket  = external_ptr_to_buckets(bucket_);
-  SEXP hash_info_   = R_ExternalPtrTag(bucket_);
-  uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-  int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
-
-  if (Rf_length(x_) != hash_size) {
-    Rf_error("Length(x) = %i does not match number of keys %i",
-             (int)Rf_length(x_), hash_size);
-  }
-  
-  
-  SEXP res_ = R_NilValue;
-  
-  if (TYPEOF(x_) == VECSXP) {
-    res_ = PROTECT(Rf_allocVector(VECSXP, Rf_length(nms_)));
-    
-    for (int i = 0; i < Rf_length(nms_); i++) {
-      const char *s = CHAR(STRING_ELT(nms_, i));
-      int idx = mph_lookup(s, bucket, nbuckets);
-      if (idx < 0) {
-        SET_VECTOR_ELT(res_, i, R_NilValue);
-      } else {
-        SET_VECTOR_ELT(res_, i, VECTOR_ELT(x_, idx));
-      }
-    }
-    
-  } else if (Rf_isInteger(x_)) {
-    int *xptr = INTEGER(x_);
-    res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(nms_)));
-    int *ptr = INTEGER(res_);
-    for (int i = 0; i < Rf_length(nms_); i++) {
-      const char *s = CHAR(STRING_ELT(nms_, i));
-      int idx = mph_lookup(s, bucket, nbuckets);
-      if (idx < 0) {
-        ptr[i] = NA_INTEGER;
-      } else {
-        ptr[i] = xptr[idx];
-      }
-    }
-  } else if (Rf_isReal(x_)) {
-    double *xptr = REAL(x_);
-    res_ = PROTECT(Rf_allocVector(REALSXP, Rf_length(nms_)));
-    double *ptr = REAL(res_);
-    for (int i = 0; i < Rf_length(nms_); i++) {
-      const char *s = CHAR(STRING_ELT(nms_, i));
-      int idx = mph_lookup(s, bucket, nbuckets);
-      if (idx < 0) {
-        ptr[i] = NA_REAL;
-      } else {
-        ptr[i] = xptr[idx];
-      }
-    }
-  } else if (TYPEOF(x_) == STRSXP) {
-    res_ = PROTECT(Rf_allocVector(STRSXP, Rf_length(nms_)));
-    for (int i = 0; i < Rf_length(nms_); i++) {
-      const char *s = CHAR(STRING_ELT(nms_, i));
-      int idx = mph_lookup(s, bucket, nbuckets);
-      if (idx < 0) {
-        SET_STRING_ELT(res_, i, NA_STRING);
-      } else {
-        SET_STRING_ELT(res_, i, STRING_ELT(x_, idx));
-      }
-    }
-  } else {
-    Rf_error("Type not handled: %s", Rf_type2char(TYPEOF(x_)));
-  }
-  
-  UNPROTECT(1);
-  return res_;
-}
-
-
-
-
-
-
 
 
 

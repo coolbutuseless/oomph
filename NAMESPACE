@@ -2,5 +2,4 @@
 
 export(mph_init)
 export(mph_match)
-export(mph_subset)
 useDynLib(oomph, .registration=TRUE)

@@ -48,23 +48,3 @@ mph_match <- function(s, mph) {
   .Call(mph_match_, s, mph)
 }
 
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Subset an R object using a hashed index 
-#' 
-#' @param nms names of elements to extract
-#' @param x Object to subset. Either list or vector (integer, numeric or character)
-#' @inheritParams mph_match
-#' @return Subset of elements of x
-#' @examples
-#' mph <- mph_init(letters)
-#' values <- LETTERS
-#' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
-#' mph_subset(c('h', 'e', 'l', 'l', 'o'), values, mph)
-#' @export
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_subset <- function(nms, x, mph) {
-  .Call(mph_subset_, nms, x, mph)
-}
-
