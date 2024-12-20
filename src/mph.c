@@ -11,6 +11,8 @@
 #include <Rinternals.h>
 #include <Rdefines.h>
 
+#include "rapidhash.h"
+
 const uint32_t Prime = 0x01000193; //   16777619 
 const uint32_t Seed  = 0x811C9DC5; // 2166136261
 
@@ -19,9 +21,9 @@ const uint32_t Seed  = 0x811C9DC5; // 2166136261
 // FNV1 which does not accept a seed argument
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 uint32_t fnv1a(const char* text) {   
-  uint32_t hash = 0x01000193;
+  uint32_t hash = 0x811C9DC5;
   while (*text)     
-    hash = ((uint32_t)*text++ ^ hash) * Prime;   
+    hash = ((uint32_t)*text++ ^ hash) * 0x01000193;   
   return hash; 
 }
 
