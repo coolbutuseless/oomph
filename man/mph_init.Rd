@@ -14,7 +14,7 @@ allowed.}
 this factor lowers the chance of hash collisions and may speed up the
 overall performance.}
 
-\item{verbosity}{What level of debuggin information should be output? Default: 0
+\item{verbosity}{What level of debugging information should be output? Default: 0
 (no debugging output). Valid levels: 0, 1, 2}
 }
 \value{
