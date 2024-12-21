@@ -7,14 +7,15 @@
 mph_init(s, size_factor = 1, verbosity = 0L)
 }
 \arguments{
-\item{s}{character vector of all possible strings. Duplicates and NAs are not 
+\item{s}{character vector. Duplicates and NAs are not 
 allowed.}
 
 \item{size_factor}{Adjusts the internal number of hash slots. Default: 1. Increasing 
 this factor lowers the chance of hash collisions and may speed up the
 overall performance.}
 
-\item{verbosity}{Default: 0}
+\item{verbosity}{What level of debuggin information should be output? Default: 0
+(no debugging output). Valid levels: 0, 1, 2}
 }
 \value{
 Hash object

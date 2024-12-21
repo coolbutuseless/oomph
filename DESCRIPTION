@@ -1,17 +1,20 @@
 Package: oomph
 Type: Package
-Title: Fast Named Subsetting and Matching Using a Hash
+Title: Fast String Matching
 Version: 0.1.1
 Authors@R: c(
     person("Mike", "Cheng", , "mikefc@coolbutuseless.com", role = c("aut", "cre", "cph")))
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
-Description: Many data structures can be indexed by a string name e.g. lists, 
-   atomic vectors.  Given a vector of names (e.g. the names of elements of a list), 
-   this package provides a very fast technique for deriving the index of the element
-   associated with this name.
+Description: Many data structures may be indexed by name e.g. lists, 
+   atomic vectors.  Given the names of an object
+   this package provides a very fast method for deriving the index of the element
+   associated with this name by using a hash look-up.
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.2
 Suggests: 
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+VignetteBuilder: knitr

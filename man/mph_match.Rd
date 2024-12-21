@@ -21,5 +21,4 @@ This is equivalent to R's \code{match()} function.
 \examples{
 mph <- mph_init(letters)
 mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
-match(c('h', 'e', 'l', 'l', 'o'), letters)
 }

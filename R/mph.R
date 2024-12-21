@@ -1,13 +1,15 @@
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Initialise a hash object with the given set of strings
 #' 
-#' @param s character vector of all possible strings. Duplicates and NAs are not 
+#' @param s character vector. Duplicates and NAs are not 
 #'    allowed.
 #' @param size_factor Adjusts the internal number of hash slots. Default: 1. Increasing 
 #'    this factor lowers the chance of hash collisions and may speed up the
 #'    overall performance.
-#' @param verbosity Default: 0
+#' @param verbosity What level of debugging information should be output? Default: 0
+#'    (no debugging output). Valid levels: 0, 1, 2
 #' 
 #' @return Hash object
 #' @examples
@@ -41,7 +43,6 @@ mph_init <- function(s, size_factor = 1, verbosity = 0L) {
 #' @examples
 #' mph <- mph_init(letters)
 #' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
-#' match(c('h', 'e', 'l', 'l', 'o'), letters)
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mph_match <- function(s, mph) {

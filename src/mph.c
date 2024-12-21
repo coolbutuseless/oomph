@@ -32,26 +32,26 @@ uint32_t fnv1a(const char* text) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define BUCKET_START_CAPACITY 1
 typedef struct {
-  int *members;   // integer values of original indexes
-  uint32_t *hash; // the hash of the string at this index
-  char **s;       // a pointer to all the strings
-  int *len;       // the lengths of the strings
-  int nmembers;   // the number of members
-  int capacity;   // the capacity of this particular bucket
+  int *index;     // Array: Original index for each element in this bucket
+  uint32_t *hash; // Array: Hash of the string
+  char **s;       // Array: pointer to the string
+  int *len;       // Array: the lengths of the string
+  int nitems;     // the number of items in this bucket
+  int capacity;   // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack an external pointer to a C struct
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bucket_t * external_ptr_to_buckets(SEXP ptr_) {
-  if (!Rf_inherits(ptr_, "bucket")) {
-    Rf_error("Expecting an 'bucket' ExternalPtr");
+bucket_t * external_ptr_to_bucket(SEXP ptr_) {
+  if (!Rf_inherits(ptr_, "mph")) {
+    Rf_error("Expecting an 'mph' ExternalPtr");
   }
   
   bucket_t *bucket = TYPEOF(ptr_) != EXTPTRSXP ? NULL : (bucket_t *)R_ExternalPtrAddr(ptr_);
   if (bucket == NULL) {
-    Rf_error("bucket pointer is invalid/NULL.");
+    Rf_error("'mph' external pointer is invalid/NULL.");
   }
   
   return bucket;
@@ -59,10 +59,7 @@ bucket_t * external_ptr_to_buckets(SEXP ptr_) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Finalizer for an 'rctx struct' object.
-//
-// This function will be called when portaudio stream object gets 
-// garbage collected.
+// Finalizer for an external pointer to an array of hash buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static void bucket_extptr_finalizer(SEXP ptr_) {
   
@@ -72,12 +69,12 @@ static void bucket_extptr_finalizer(SEXP ptr_) {
   bucket_t *bucket = (bucket_t *)R_ExternalPtrAddr(ptr_);
   
   if (bucket != NULL) {
-    SEXP hash_info_ = R_ExternalPtrTag(ptr_);
+    SEXP hash_info_   = R_ExternalPtrTag(ptr_);
     uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-    // int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
+    // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
     
     for (int i = 0; i < nbuckets; ++i) {
-      free(bucket[i].members);
+      free(bucket[i].index);
       free(bucket[i].hash);
       free(bucket[i].len);
       free(bucket[i].s);
@@ -121,8 +118,8 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    bucket[i].members = calloc(BUCKET_START_CAPACITY, sizeof(int));
-    if (bucket[i].members == NULL) {
+    bucket[i].index = calloc(BUCKET_START_CAPACITY, sizeof(int));
+    if (bucket[i].index == NULL) {
       Rf_error("Failed to allocate bucket[%i]", i);
     }
     bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
@@ -137,7 +134,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     if (bucket[i].len == NULL) {
       Rf_error("Failed to allocate len[%i]", i);
     }
-    bucket[i].nmembers = 0;
+    bucket[i].nitems = 0;
     bucket[i].capacity = BUCKET_START_CAPACITY;
   }
   
@@ -147,17 +144,17 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     uint32_t h = fnv1a(CHAR(STRING_ELT(s_, i)));
     uint32_t idx = h % nbuckets;
-    bucket[idx].members[bucket[idx].nmembers] = i;
-    bucket[idx].hash   [bucket[idx].nmembers] = h;
-    bucket[idx].len    [bucket[idx].nmembers] = strlen(CHAR(STRING_ELT(s_, i)));
-    bucket[idx].s      [bucket[idx].nmembers] = (char *)CHAR(STRING_ELT(s_, i));
-    bucket[idx].nmembers += 1;
-    if (bucket[idx].nmembers >= bucket[idx].capacity) {
+    bucket[idx].index[bucket[idx].nitems] = i;
+    bucket[idx].hash   [bucket[idx].nitems] = h;
+    bucket[idx].len    [bucket[idx].nitems] = strlen(CHAR(STRING_ELT(s_, i)));
+    bucket[idx].s      [bucket[idx].nitems] = (char *)CHAR(STRING_ELT(s_, i));
+    bucket[idx].nitems += 1;
+    if (bucket[idx].nitems >= bucket[idx].capacity) {
       bucket[idx].capacity *= 2;
-      bucket[idx].members = realloc(bucket[idx].members, (size_t)bucket[idx].capacity * sizeof(int));
-      bucket[idx].hash    = realloc(bucket[idx].hash   , (size_t)bucket[idx].capacity * sizeof(uint32_t));
-      bucket[idx].len     = realloc(bucket[idx].len    , (size_t)bucket[idx].capacity * sizeof(int));
-      bucket[idx].s       = realloc(bucket[idx].s      , (size_t)bucket[idx].capacity * sizeof(char *));
+      bucket[idx].index = realloc(bucket[idx].index, (size_t)bucket[idx].capacity * sizeof(int));
+      bucket[idx].hash  = realloc(bucket[idx].hash , (size_t)bucket[idx].capacity * sizeof(uint32_t));
+      bucket[idx].len   = realloc(bucket[idx].len  , (size_t)bucket[idx].capacity * sizeof(int));
+      bucket[idx].s     = realloc(bucket[idx].s    , (size_t)bucket[idx].capacity * sizeof(char *));
     }
   }
   
@@ -167,28 +164,28 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (Rf_asInteger(verbosity_) > 0) {
     int zeros = 0;
-    int ones = 0;
+    int ones  = 0;
     int mores = 0;
     for (int i = 0; i < nbuckets; ++i) {
-      if (bucket[i].nmembers == 0) {
+      if (bucket[i].nitems == 0) {
         ++zeros;
-      } else if (bucket[i].nmembers == 1) {
+      } else if (bucket[i].nitems == 1) {
         ++ones;
       } else {
         ++mores;
       }
     }  
-    Rprintf("0: %i,  1: %i, 2+: %i\n", zeros, ones, mores);
+    Rprintf("Items/Bucket: 0: %i,  1: %i, 2+: %i\n", zeros, ones, mores);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Dump buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (Rf_asInteger(verbosity_) > 5) {
+  if (Rf_asInteger(verbosity_) > 1) {
     for (int i = 0; i < nbuckets; ++i) {
-      Rprintf("[%3i  %s] ", i, bucket[i].nmembers == 1 ? "1" : " ");
-      for (int j = 0; j < bucket[i].nmembers; ++j) {
-        Rprintf("%3i ", bucket[i].members[j]);
+      Rprintf("[%3i  %s] ", i, bucket[i].nitems == 1 ? "1" : " ");
+      for (int j = 0; j < bucket[i].nitems; ++j) {
+        Rprintf("%3i ", bucket[i].index[j]);
       }
       Rprintf("\n");
     }
@@ -198,12 +195,12 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Create an external pointer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP hash_info_ = PROTECT(Rf_allocVector(INTSXP, 2));
-  INTEGER(hash_info_)[0] = nbuckets;
-  INTEGER(hash_info_)[1] = Rf_length(s_);
+  INTEGER(hash_info_)[0] = nbuckets;      // nbuckets
+  INTEGER(hash_info_)[1] = Rf_length(s_); // nkeys
   
   SEXP ptr_ = PROTECT(R_MakeExternalPtr(bucket, hash_info_, s_));
   R_RegisterCFinalizer(ptr_, bucket_extptr_finalizer);
-  Rf_setAttrib(ptr_, R_ClassSymbol, Rf_mkString("bucket"));
+  Rf_setAttrib(ptr_, R_ClassSymbol, Rf_mkString("mph"));
   UNPROTECT(2);
   return ptr_;
 }
@@ -216,21 +213,9 @@ int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
   uint32_t h = fnv1a(s);
   uint32_t idx = h % nbuckets;
   
-  if (bucket[idx].nmembers == 0) {
-    return -1;
-  } 
-  
-  if (bucket[idx].nmembers == 1) {
-    if (bucket[idx].hash[0] == h && memcmp(s, bucket[idx].s[0], bucket[idx].len[0]) == 0) {
-      return bucket[idx].members[0];
-    } else {
-      return -1;
-    }
-  }
-  
-  for (int j = 0; j < bucket[idx].nmembers; ++j) {
+  for (int j = 0; j < bucket[idx].nitems; ++j) {
     if (bucket[idx].hash[j] == h && memcmp(s, bucket[idx].s[j], bucket[idx].len[j]) == 0) {
-      return bucket[idx].members[j];
+      return bucket[idx].index[j];
     }
   }
   
@@ -244,16 +229,18 @@ int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP mph_match_(SEXP s_, SEXP bucket_) {
   
-  bucket_t *bucket = external_ptr_to_buckets(bucket_);
+  bucket_t *bucket = external_ptr_to_bucket(bucket_);
   SEXP hash_info_ = R_ExternalPtrTag(bucket_);
   uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-  // int hash_size     = (uint32_t)INTEGER(hash_info_)[1];
+  // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
 
   SEXP res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(s_)));
   int *res = INTEGER(res_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Test against original
+  // For each string, find its index. 
+  // If -1, then string was not found
+  // otherwise: Convert from C 0-index to R's 1-index
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
