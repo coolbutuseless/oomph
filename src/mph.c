@@ -104,7 +104,7 @@ bucket_t *mph_init(size_t nbuckets) {
   for (int i = 0; i < nbuckets; ++i) {
     bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
     if (bucket[i].value == NULL) {
-      Rf_error("Failed to allocate bucket[%i]", i);
+      Rf_error("Failed to allocate value[%i]", i);
     }
     bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
     if (bucket[i].hash == NULL) {
@@ -112,7 +112,7 @@ bucket_t *mph_init(size_t nbuckets) {
     }
     bucket[i].key = calloc(BUCKET_START_CAPACITY, sizeof(uint8_t *));
     if (bucket[i].key == NULL) {
-      Rf_error("Failed to allocate s[%i]", i);
+      Rf_error("Failed to allocate key[%i]", i);
     }
     bucket[i].len = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
     if (bucket[i].len == NULL) {
