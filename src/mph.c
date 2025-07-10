@@ -61,6 +61,11 @@ void mph_destroy(mph_t *mph) {
       free(mph->bucket[i].value);
       free(mph->bucket[i].hash);
       free(mph->bucket[i].len);
+      
+      for (int j = 0; j < mph->bucket[i].nitems; j++) {
+        free(mph->bucket[i].key[j]);
+      }
+      
       free(mph->bucket[i].key);
     }
     free(mph->bucket);
@@ -197,7 +202,11 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     mph->bucket[idx].value[mph->bucket[idx].nitems] = i;
     mph->bucket[idx].hash [mph->bucket[idx].nitems] = h;
     mph->bucket[idx].len  [mph->bucket[idx].nitems] = len;
-    mph->bucket[idx].key  [mph->bucket[idx].nitems] = (uint8_t *)CHAR(STRING_ELT(s_, i));
+    mph->bucket[idx].key  [mph->bucket[idx].nitems] = malloc(len);
+    if (mph->bucket[idx].key  [mph->bucket[idx].nitems] == NULL) {
+      Rf_error("Adding key failed");
+    }
+    memcpy(mph->bucket[idx].key  [mph->bucket[idx].nitems], key, len);
     
     // Bump the count of items in the hashmap
     mph->bucket[idx].nitems++;
