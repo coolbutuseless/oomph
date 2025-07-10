@@ -93,10 +93,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |   median |      itr/sec | mem_alloc |
-|:-------------------|---------:|---------:|-------------:|----------:|
-| match(t0, nms)     |   1.04ms |   1.13ms |     869.1267 |    3.82MB |
-| mph_match(t0, mph) | 205.07ns | 287.02ns | 3092803.9776 |    3.97KB |
+| expression         |   min |   median |      itr/sec | mem_alloc |
+|:-------------------|------:|---------:|-------------:|----------:|
+| match(t0, nms)     | 876µs |   1.16ms |     860.3279 |    3.82MB |
+| mph_match(t0, mph) | 205ns | 286.85ns | 2885114.5335 |    3.97KB |
 
 ``` r
 bench::mark(
@@ -105,10 +105,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |    min |   median |      itr/sec | mem_alloc |
-|:-------------------|-------:|---------:|-------------:|----------:|
-| match(t1, nms)     | 5.42ms |   5.77ms |     172.2174 |    7.82MB |
-| mph_match(t1, mph) |  328ns | 410.01ns | 2208594.9456 |        0B |
+| expression         |      min |   median |     itr/sec | mem_alloc |
+|:-------------------|---------:|---------:|------------:|----------:|
+| match(t1, nms)     |   5.46ms |   6.36ms |     157.299 |    7.82MB |
+| mph_match(t1, mph) | 327.83ns | 450.76ns | 2199657.545 |        0B |
 
 ``` r
 bench::mark(
@@ -119,8 +119,8 @@ bench::mark(
 
 | expression         |    min | median |     itr/sec | mem_alloc |
 |:-------------------|-------:|-------:|------------:|----------:|
-| match(t2, nms)     | 5.23ms | 5.74ms |    172.2227 |    7.82MB |
-| mph_match(t2, mph) | 2.05µs | 2.17µs | 429477.2517 |      448B |
+| match(t2, nms)     | 5.44ms | 6.25ms |    160.3913 |    7.82MB |
+| mph_match(t2, mph) | 2.21µs | 2.38µs | 395176.2420 |      448B |
 
 ``` r
 bench::mark(
@@ -131,8 +131,8 @@ bench::mark(
 
 | expression         |     min |  median |    itr/sec | mem_alloc |
 |:-------------------|--------:|--------:|-----------:|----------:|
-| match(t3, nms)     |  5.23ms |  5.46ms |   183.0433 |    7.83MB |
-| mph_match(t3, mph) | 28.99µs | 29.52µs | 33044.5556 |    3.95KB |
+| match(t3, nms)     |  5.72ms |  6.19ms |   159.9975 |    7.83MB |
+| mph_match(t3, mph) | 32.19µs | 32.72µs | 30132.1977 |    3.95KB |
 
 ## Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -145,8 +145,8 @@ bench::mark(
 
 | expression                       |    min | median |     itr/sec | mem_alloc |
 |:---------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t2\]                 | 5.19ms | 5.46ms |    182.1493 |    7.82MB |
-| big_vector\[mph_match(t2, mph)\] | 2.87µs | 3.03µs | 308181.2405 |     1.7KB |
+| big_vector\[t2\]                 | 5.69ms | 6.16ms |    161.8019 |    7.82MB |
+| big_vector\[mph_match(t2, mph)\] | 3.08µs | 3.28µs | 286025.9634 |     1.7KB |
 
 ## List subsetting - Extract 100 elements of a `list` by name
 
@@ -164,9 +164,9 @@ bench::mark(
 
 | expression            |    min |  median |     itr/sec | mem_alloc |
 |:----------------------|-------:|--------:|------------:|----------:|
-| Standard R            | 5.37ms |  5.42ms |    182.4047 |    7.82MB |
-| R hashed environment  | 17.1µs | 17.43µs |  55575.2344 |      848B |
-| \[\] and mph indexing |  3.2µs |  3.36µs | 272395.5087 |    2.09KB |
+| Standard R            | 5.63ms |  5.87ms |    166.9113 |    7.82MB |
+| R hashed environment  | 18.2µs | 18.53µs |  52214.6320 |      848B |
+| \[\] and mph indexing | 3.44µs |  3.65µs | 249600.0729 |    2.09KB |
 
 ## Time taken to build the hash
 
@@ -190,11 +190,11 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression        |      min |   median |    itr/sec | mem_alloc |
-|:------------------|---------:|---------:|-----------:|----------:|
-| mph_init(nms1k)   | 176.01µs | 182.41µs | 5335.00378 |      12KB |
-| mph_init(nms10k)  |   1.76ms |   1.84ms |  149.55035 |  167.16KB |
-| mph_init(nms100k) |     19ms |  20.92ms |   46.98398 |    1.38MB |
+| expression        |   min |   median |    itr/sec | mem_alloc |
+|:------------------|------:|---------:|-----------:|----------:|
+| mph_init(nms1k)   | 194µs | 206.11µs | 4747.72648 |      12KB |
+| mph_init(nms10k)  |   2ms |   2.08ms |   69.45488 |  167.16KB |
+| mph_init(nms100k) |  23ms |  26.85ms |   37.39611 |    1.38MB |
 
 ## Billion Row Challenge indexing
 
@@ -230,11 +230,11 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression     |    min |  median |  itr/sec | mem_alloc |
-|:---------------|-------:|--------:|---------:|----------:|
-| baseR          |  139µs | 165.9µs |  5196.78 |   558.6KB |
-| oomph          | 30.4µs |    32µs | 30054.18 |    19.7KB |
-| oomph + insitu | 23.5µs |  24.2µs | 39493.92 |    14.5KB |
+| expression     |     min | median |    itr/sec | mem_alloc |
+|:---------------|--------:|-------:|-----------:|----------:|
+| baseR          | 138.7µs |  162µs |   369.0988 |   558.6KB |
+| oomph          |  30.9µs | 31.8µs | 30296.5325 |    19.7KB |
+| oomph + insitu |  24.1µs | 24.7µs | 39431.5282 |    14.6KB |
 
 ``` r
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -264,6 +264,6 @@ bench::mark(
 
 | expression     |      min |   median |    itr/sec | mem_alloc |
 |:---------------|---------:|---------:|-----------:|----------:|
-| baseR          | 166.63ms | 212.91ms |   5.049908 |   134.2MB |
-| oomph          |   1.48ms |   1.66ms | 142.149867 |    20.2KB |
-| oomph + insitu |   1.39ms |   1.42ms | 533.828883 |    11.3KB |
+| baseR          | 166.08ms | 209.66ms |   5.121019 |   134.2MB |
+| oomph          |   1.45ms |   1.51ms | 478.109260 |    20.2KB |
+| oomph + insitu |   1.41ms |   1.49ms | 539.650100 |    11.3KB |
