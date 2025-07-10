@@ -16,18 +16,6 @@ const uint32_t Seed  = 0x811C9DC5; // 2166136261
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// FNV1 which does not accept a seed argument
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-uint32_t fnv1a(uint8_t *data, size_t len) {
-  uint32_t hash = 0x01000193;
-  for (size_t i = 0; i < len; i++)     
-    hash = ((uint32_t)*data++ ^ hash) * Prime;   
-  return hash; 
-}
-
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define BUCKET_START_CAPACITY 1
@@ -39,6 +27,28 @@ typedef struct {
   size_t nitems;   // the number of items in this bucket
   size_t capacity; // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// The hashmap is a collection of buckets
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+typedef struct {
+  bucket_t *bucket;
+  size_t nbuckets;
+  size_t total_items;
+} mph_t;
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// FNV1 which does not accept a seed argument
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uint32_t fnv1a(uint8_t *data, size_t len) {
+  uint32_t hash = 0x01000193;
+  for (size_t i = 0; i < len; i++)     
+    hash = ((uint32_t)*data++ ^ hash) * Prime;   
+  return hash; 
+}
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,33 +68,21 @@ bucket_t * external_ptr_to_bucket(SEXP ptr_) {
 }
 
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Finalizer for an external pointer to an array of hash buckets
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-static void bucket_extptr_finalizer(SEXP ptr_) {
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Unpack the pointer
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  bucket_t *bucket = (bucket_t *)R_ExternalPtrAddr(ptr_);
-  
-  if (bucket != NULL) {
-    SEXP hash_info_   = R_ExternalPtrTag(ptr_);
-    uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-    // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
-    
-    for (int i = 0; i < nbuckets; ++i) {
-      free(bucket[i].value);
-      free(bucket[i].hash);
-      free(bucket[i].len);
-      free(bucket[i].key);
-    }
-    free(bucket);
-  }
-  
-  R_ClearExternalPtr(ptr_);
-}
 
+void mph_destroy(mph_t *mph) {
+  
+  if (mph == NULL) return;
+  if (mph->bucket != NULL) {
+    for (int i = 0; i < mph->nbuckets; i++) {
+      free(mph->bucket[i].value);
+      free(mph->bucket[i].hash);
+      free(mph->bucket[i].len);
+      free(mph->bucket[i].key);
+    }
+    free(mph->bucket);
+  }
+  free(mph);
+}
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +122,35 @@ bucket_t *mph_init(size_t nbuckets) {
   
   return bucket;
 }
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Finalizer for an external pointer to an array of hash buckets
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+static void bucket_extptr_finalizer(SEXP ptr_) {
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Unpack the pointer
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  bucket_t *bucket = (bucket_t *)R_ExternalPtrAddr(ptr_);
+  
+  if (bucket != NULL) {
+    SEXP hash_info_   = R_ExternalPtrTag(ptr_);
+    uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
+    // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
+    
+    for (int i = 0; i < nbuckets; ++i) {
+      free(bucket[i].value);
+      free(bucket[i].hash);
+      free(bucket[i].len);
+      free(bucket[i].key);
+    }
+    free(bucket);
+  }
+  
+  R_ClearExternalPtr(ptr_);
+}
+
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
