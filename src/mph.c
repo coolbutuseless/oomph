@@ -32,12 +32,12 @@ uint32_t fnv1a(uint8_t *data, size_t len) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define BUCKET_START_CAPACITY 1
 typedef struct {
-  int *index;     // Array: Original index for each element in this bucket
-  uint32_t *hash; // Array: Hash of the string
-  char **s;       // Array: pointer to the string
-  int *len;       // Array: the lengths of the string
-  int nitems;     // the number of items in this bucket
-  int capacity;   // the capacity of this bucket (for triggering re-alloc)
+  size_t *index;   // Array: Original index for each element in this bucket
+  uint32_t *hash;  // Array: Hash of the string
+  char **s;        // Array: pointer to the string
+  size_t *len;     // Array: the lengths of the string
+  size_t nitems;   // the number of items in this bucket
+  size_t capacity; // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;
 
 
@@ -118,7 +118,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    bucket[i].index = calloc(BUCKET_START_CAPACITY, sizeof(int));
+    bucket[i].index = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
     if (bucket[i].index == NULL) {
       Rf_error("Failed to allocate bucket[%i]", i);
     }
@@ -130,7 +130,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     if (bucket[i].s == NULL) {
       Rf_error("Failed to allocate s[%i]", i);
     }
-    bucket[i].len = calloc(BUCKET_START_CAPACITY, sizeof(int));
+    bucket[i].len = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
     if (bucket[i].len == NULL) {
       Rf_error("Failed to allocate len[%i]", i);
     }
@@ -143,19 +143,24 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
-    uint32_t h = fnv1a((uint8_t *)s, strlen(s));
+    
+    uint8_t *data = (uint8_t *)s;
+    size_t len = (size_t)strlen(s);
+    
+    uint32_t h = fnv1a(data, len);
     uint32_t idx = h % nbuckets;
+    
     bucket[idx].index[bucket[idx].nitems] = i;
-    bucket[idx].hash   [bucket[idx].nitems] = h;
-    bucket[idx].len    [bucket[idx].nitems] = strlen(CHAR(STRING_ELT(s_, i)));
-    bucket[idx].s      [bucket[idx].nitems] = (char *)CHAR(STRING_ELT(s_, i));
+    bucket[idx].hash [bucket[idx].nitems] = h;
+    bucket[idx].len  [bucket[idx].nitems] = len;
+    bucket[idx].s    [bucket[idx].nitems] = (char *)CHAR(STRING_ELT(s_, i));
     bucket[idx].nitems += 1;
     if (bucket[idx].nitems >= bucket[idx].capacity) {
       bucket[idx].capacity *= 2;
-      bucket[idx].index = realloc(bucket[idx].index, (size_t)bucket[idx].capacity * sizeof(int));
+      bucket[idx].index = realloc(bucket[idx].index, (size_t)bucket[idx].capacity * sizeof(size_t));
       bucket[idx].hash  = realloc(bucket[idx].hash , (size_t)bucket[idx].capacity * sizeof(uint32_t));
-      bucket[idx].len   = realloc(bucket[idx].len  , (size_t)bucket[idx].capacity * sizeof(int));
-      bucket[idx].s     = realloc(bucket[idx].s    , (size_t)bucket[idx].capacity * sizeof(char *));
+      bucket[idx].len   = realloc(bucket[idx].len  , (size_t)bucket[idx].capacity * sizeof(size_t));
+      bucket[idx].s     = realloc(bucket[idx].s    , (size_t)bucket[idx].capacity * sizeof(uint8_t *));
     }
   }
   
@@ -186,7 +191,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     for (int i = 0; i < nbuckets; ++i) {
       Rprintf("[%3i  %s] ", i, bucket[i].nitems == 1 ? "1" : " ");
       for (int j = 0; j < bucket[i].nitems; ++j) {
-        Rprintf("%3i ", bucket[i].index[j]);
+        Rprintf("%3i ", (int)bucket[i].index[j]);
       }
       Rprintf("\n");
     }
