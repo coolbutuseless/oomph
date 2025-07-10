@@ -23,7 +23,7 @@ typedef struct {
   uint8_t **key;   // Array: pointer to the keys (hash retrains a copy of original key)
   size_t *len;     // Array: the lengths of each key
   uint32_t *hash;  // Array: hash of the key
-  size_t *value;   // Array: integer value for each key i.e. index of insertion order
+  int32_t *value;   // Array: integer value for each key i.e. index of insertion order
   size_t nitems;   // the number of items in this bucket
   size_t capacity; // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;
@@ -98,7 +98,7 @@ mph_t *mph_init(size_t nbuckets) {
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    mph->bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
+    mph->bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(int32_t));
     if (mph->bucket[i].value == NULL) {
       Rf_error("Failed to allocate value[%i]", i);
     }
@@ -122,12 +122,16 @@ mph_t *mph_init(size_t nbuckets) {
 }
 
 
-int mph_add(mph_t *mph, uint8_t *key, size_t len) {
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Add a key to the hashmap
+// The value is implicitly the current "total_items" in the hashmap
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+int32_t mph_add(mph_t *mph, uint8_t *key, size_t len) {
   // Hash key, and calculate the bucket
   uint32_t hash = fnv1a(key, len);
   uint32_t idx  = hash % mph->nbuckets;
   
-  size_t value = mph->total_items;
+  int32_t value = (int32_t)mph->total_items;
   
   // Add key to the hashmap
   mph->bucket[idx].value[mph->bucket[idx].nitems] = value;
@@ -146,10 +150,10 @@ int mph_add(mph_t *mph, uint8_t *key, size_t len) {
   // If hashmap is out of room, then increase the capacity
   if (mph->bucket[idx].nitems >= mph->bucket[idx].capacity) {
     mph->bucket[idx].capacity *= 2;
-    mph->bucket[idx].value = realloc(mph->bucket[idx].value, (size_t)mph->bucket[idx].capacity * sizeof(size_t));
-    mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , (size_t)mph->bucket[idx].capacity * sizeof(uint32_t));
-    mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , (size_t)mph->bucket[idx].capacity * sizeof(size_t));
-    mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , (size_t)mph->bucket[idx].capacity * sizeof(uint8_t *));
+    mph->bucket[idx].value = realloc(mph->bucket[idx].value, mph->bucket[idx].capacity * sizeof(int32_t));
+    mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , mph->bucket[idx].capacity * sizeof(uint32_t));
+    mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , mph->bucket[idx].capacity * sizeof(size_t));
+    mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , mph->bucket[idx].capacity * sizeof(uint8_t *));
   }
   
   return (int)value;
@@ -232,7 +236,10 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint8_t *key = (uint8_t *)s;
     size_t len   = (size_t)strlen(s);
     
-    mph_add(mph, key, len);
+    int res = mph_add(mph, key, len);
+    if (res < 0) {
+      Rf_error("mph_init_(): Error adding item %i: '%s'", i, s);
+    }
   }
   
   
@@ -262,7 +269,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     for (int i = 0; i < mph->nbuckets; ++i) {
       Rprintf("[%3i  %s] ", i, mph->bucket[i].nitems == 1 ? "1" : " ");
       for (int j = 0; j < mph->bucket[i].nitems; ++j) {
-        Rprintf("%3i ", (int)mph->bucket[i].value[j]);
+        Rprintf("%3i ", mph->bucket[i].value[j]);
       }
       Rprintf("\n");
     }
@@ -282,7 +289,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Lookup a single key in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-int mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
+int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
   uint32_t h   = fnv1a(key, len);
   uint32_t idx = h % mph->nbuckets;
   
