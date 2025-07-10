@@ -52,23 +52,7 @@ uint32_t fnv1a(uint8_t *data, size_t len) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Unpack an external pointer to a C struct
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bucket_t * external_ptr_to_bucket(SEXP ptr_) {
-  if (!Rf_inherits(ptr_, "mph")) {
-    Rf_error("Expecting an 'mph' ExternalPtr");
-  }
-  
-  bucket_t *bucket = TYPEOF(ptr_) != EXTPTRSXP ? NULL : (bucket_t *)R_ExternalPtrAddr(ptr_);
-  if (bucket == NULL) {
-    Rf_error("'mph' external pointer is invalid/NULL.");
-  }
-  
-  return bucket;
-}
-
-
-
 void mph_destroy(mph_t *mph) {
   
   if (mph == NULL) return;
@@ -88,67 +72,79 @@ void mph_destroy(mph_t *mph) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialize a hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bucket_t *mph_init(size_t nbuckets) {
+mph_t *mph_init(size_t nbuckets) {
   if (nbuckets < 1) {
     return NULL;
   }
-  bucket_t *bucket = calloc((size_t)nbuckets, sizeof(bucket_t));
   
-  if (bucket == NULL) {
+  mph_t *mph = calloc(1, sizeof(mph_t));
+  if (mph == NULL) {
+    return NULL;
+  }
+  mph->nbuckets    = nbuckets;
+  mph->total_items = 0;
+  
+  mph->bucket = calloc(nbuckets, sizeof(bucket_t));
+  if (mph->bucket == NULL) {
     return NULL;
   }
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
-    if (bucket[i].value == NULL) {
+    mph->bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
+    if (mph->bucket[i].value == NULL) {
       Rf_error("Failed to allocate value[%i]", i);
     }
-    bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
-    if (bucket[i].hash == NULL) {
+    mph->bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
+    if (mph->bucket[i].hash == NULL) {
       Rf_error("Failed to allocate hash[%i]", i);
     }
-    bucket[i].key = calloc(BUCKET_START_CAPACITY, sizeof(uint8_t *));
-    if (bucket[i].key == NULL) {
+    mph->bucket[i].key = calloc(BUCKET_START_CAPACITY, sizeof(uint8_t *));
+    if (mph->bucket[i].key == NULL) {
       Rf_error("Failed to allocate key[%i]", i);
     }
-    bucket[i].len = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
-    if (bucket[i].len == NULL) {
+    mph->bucket[i].len = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
+    if (mph->bucket[i].len == NULL) {
       Rf_error("Failed to allocate len[%i]", i);
     }
-    bucket[i].nitems = 0;
-    bucket[i].capacity = BUCKET_START_CAPACITY;
+    mph->bucket[i].nitems = 0;
+    mph->bucket[i].capacity = BUCKET_START_CAPACITY;
   }
   
-  return bucket;
+  return mph;
 }
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Finalizer for an external pointer to an array of hash buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-static void bucket_extptr_finalizer(SEXP ptr_) {
+static void mph_extptr_finalizer(SEXP ptr_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack the pointer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  bucket_t *bucket = (bucket_t *)R_ExternalPtrAddr(ptr_);
-  
-  if (bucket != NULL) {
-    SEXP hash_info_   = R_ExternalPtrTag(ptr_);
-    uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-    // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
-    
-    for (int i = 0; i < nbuckets; ++i) {
-      free(bucket[i].value);
-      free(bucket[i].hash);
-      free(bucket[i].len);
-      free(bucket[i].key);
-    }
-    free(bucket);
+  mph_t *mph = (mph_t *)R_ExternalPtrAddr(ptr_);
+  mph_destroy(mph);
+
+  R_ClearExternalPtr(ptr_);
+}
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Unpack an external pointer to a C struct
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mph_t * external_ptr_to_mph(SEXP ptr_) {
+  if (!Rf_inherits(ptr_, "mph")) {
+    Rf_error("Expecting an 'mph' ExternalPtr");
   }
   
-  R_ClearExternalPtr(ptr_);
+  mph_t *mph = TYPEOF(ptr_) != EXTPTRSXP ? NULL : (mph_t *)R_ExternalPtrAddr(ptr_);
+  if (mph == NULL) {
+    Rf_error("'mph' external pointer is invalid/NULL.");
+  }
+  
+  return mph;
 }
 
 
@@ -178,9 +174,9 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     Rprintf("N buckets: %i\n", nbuckets);
   }
   
-  bucket_t *bucket = mph_init(nbuckets);
-  if (bucket == NULL) {
-    Rf_error("mph_init_(): Couldn't initialise hash");
+  mph_t *mph = mph_init(nbuckets);
+  if (mph == NULL) {
+    Rf_error("mph_init_(): Couldn't initialise hashmap");
   }
  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -198,21 +194,22 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint32_t idx = h % nbuckets;
     
     // Add key to the hashmap
-    bucket[idx].value[bucket[idx].nitems] = i;
-    bucket[idx].hash [bucket[idx].nitems] = h;
-    bucket[idx].len  [bucket[idx].nitems] = len;
-    bucket[idx].key  [bucket[idx].nitems] = (uint8_t *)CHAR(STRING_ELT(s_, i));
+    mph->bucket[idx].value[mph->bucket[idx].nitems] = i;
+    mph->bucket[idx].hash [mph->bucket[idx].nitems] = h;
+    mph->bucket[idx].len  [mph->bucket[idx].nitems] = len;
+    mph->bucket[idx].key  [mph->bucket[idx].nitems] = (uint8_t *)CHAR(STRING_ELT(s_, i));
     
     // Bump the count of items in the hashmap
-    bucket[idx].nitems += 1;
+    mph->bucket[idx].nitems++;
+    mph->total_items++;
     
     // If hashmap is out of room, then increase the capacity
-    if (bucket[idx].nitems >= bucket[idx].capacity) {
-      bucket[idx].capacity *= 2;
-      bucket[idx].value = realloc(bucket[idx].value, (size_t)bucket[idx].capacity * sizeof(size_t));
-      bucket[idx].hash  = realloc(bucket[idx].hash , (size_t)bucket[idx].capacity * sizeof(uint32_t));
-      bucket[idx].len   = realloc(bucket[idx].len  , (size_t)bucket[idx].capacity * sizeof(size_t));
-      bucket[idx].key   = realloc(bucket[idx].key  , (size_t)bucket[idx].capacity * sizeof(uint8_t *));
+    if (mph->bucket[idx].nitems >= mph->bucket[idx].capacity) {
+      mph->bucket[idx].capacity *= 2;
+      mph->bucket[idx].value = realloc(mph->bucket[idx].value, (size_t)mph->bucket[idx].capacity * sizeof(size_t));
+      mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , (size_t)mph->bucket[idx].capacity * sizeof(uint32_t));
+      mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , (size_t)mph->bucket[idx].capacity * sizeof(size_t));
+      mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , (size_t)mph->bucket[idx].capacity * sizeof(uint8_t *));
     }
   }
   
@@ -225,9 +222,9 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     int ones  = 0;
     int mores = 0;
     for (int i = 0; i < nbuckets; ++i) {
-      if (bucket[i].nitems == 0) {
+      if (mph->bucket[i].nitems == 0) {
         ++zeros;
-      } else if (bucket[i].nitems == 1) {
+      } else if (mph->bucket[i].nitems == 1) {
         ++ones;
       } else {
         ++mores;
@@ -240,10 +237,10 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Dump buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (Rf_asInteger(verbosity_) > 1) {
-    for (int i = 0; i < nbuckets; ++i) {
-      Rprintf("[%3i  %s] ", i, bucket[i].nitems == 1 ? "1" : " ");
-      for (int j = 0; j < bucket[i].nitems; ++j) {
-        Rprintf("%3i ", (int)bucket[i].value[j]);
+    for (int i = 0; i < mph->nbuckets; ++i) {
+      Rprintf("[%3i  %s] ", i, mph->bucket[i].nitems == 1 ? "1" : " ");
+      for (int j = 0; j < mph->bucket[i].nitems; ++j) {
+        Rprintf("%3i ", (int)mph->bucket[i].value[j]);
       }
       Rprintf("\n");
     }
@@ -252,14 +249,10 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create an external pointer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP hash_info_ = PROTECT(Rf_allocVector(INTSXP, 2));
-  INTEGER(hash_info_)[0] = nbuckets;      // nbuckets
-  INTEGER(hash_info_)[1] = Rf_length(s_); // nkeys
-  
-  SEXP ptr_ = PROTECT(R_MakeExternalPtr(bucket, hash_info_, s_));
-  R_RegisterCFinalizer(ptr_, bucket_extptr_finalizer);
+  SEXP ptr_ = PROTECT(R_MakeExternalPtr(mph, R_NilValue, R_NilValue));
+  R_RegisterCFinalizer(ptr_, mph_extptr_finalizer);
   Rf_setAttrib(ptr_, R_ClassSymbol, Rf_mkString("mph"));
-  UNPROTECT(2);
+  UNPROTECT(1);
   return ptr_;
 }
 
@@ -267,13 +260,13 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Lookup a single key in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-int mph_lookup(uint8_t *key, size_t len, bucket_t *bucket, int nbuckets) {
+int mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
   uint32_t h   = fnv1a(key, len);
-  uint32_t idx = h % nbuckets;
+  uint32_t idx = h % mph->nbuckets;
   
-  for (int j = 0; j < bucket[idx].nitems; ++j) {
-    if (bucket[idx].hash[j] == h && memcmp(key, bucket[idx].key[j], bucket[idx].len[j]) == 0) {
-      return bucket[idx].value[j];
+  for (int j = 0; j < mph->bucket[idx].nitems; ++j) {
+    if (mph->bucket[idx].hash[j] == h && memcmp(key, mph->bucket[idx].key[j], mph->bucket[idx].len[j]) == 0) {
+      return mph->bucket[idx].value[j];
     }
   }
   
@@ -285,12 +278,9 @@ int mph_lookup(uint8_t *key, size_t len, bucket_t *bucket, int nbuckets) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Hashmap match
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_match_(SEXP s_, SEXP bucket_) {
+SEXP mph_match_(SEXP s_, SEXP mph_) {
   
-  bucket_t *bucket = external_ptr_to_bucket(bucket_);
-  SEXP hash_info_ = R_ExternalPtrTag(bucket_);
-  uint32_t nbuckets = (uint32_t)INTEGER(hash_info_)[0];
-  // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
+  mph_t *mph = external_ptr_to_mph(mph_);
 
   SEXP res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(s_)));
   int *res = INTEGER(res_);
@@ -303,7 +293,7 @@ SEXP mph_match_(SEXP s_, SEXP bucket_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
-    int idx = mph_lookup((uint8_t *)s, strlen(s), bucket, nbuckets);
+    int idx = mph_lookup(mph, (uint8_t *)s, strlen(s));
     res[i] = idx < 0 ? NA_INTEGER : idx + 1;
   }
   
