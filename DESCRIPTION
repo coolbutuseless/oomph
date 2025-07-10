@@ -1,7 +1,7 @@
 Package: oomph
 Type: Package
 Title: Fast String Matching
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
     person("Mike", "Cheng", , "mikefc@coolbutuseless.com", role = c("aut", "cre", "cph")))
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>

@@ -52,6 +52,7 @@ uint32_t fnv1a(uint8_t *data, size_t len) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Destroy an mph and all allocated memory
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void mph_destroy(mph_t *mph) {
   
@@ -62,11 +63,12 @@ void mph_destroy(mph_t *mph) {
       free(mph->bucket[i].hash);
       free(mph->bucket[i].len);
       
+      // Free each of the cached copies of keys
       for (int j = 0; j < mph->bucket[i].nitems; j++) {
         free(mph->bucket[i].key[j]);
       }
-      
       free(mph->bucket[i].key);
+      
     }
     free(mph->bucket);
   }
@@ -118,6 +120,42 @@ mph_t *mph_init(size_t nbuckets) {
   
   return mph;
 }
+
+
+int mph_add(mph_t *mph, uint8_t *key, size_t len) {
+  // Hash key, and calculate the bucket
+  uint32_t hash = fnv1a(key, len);
+  uint32_t idx  = hash % mph->nbuckets;
+  
+  size_t value = mph->total_items;
+  
+  // Add key to the hashmap
+  mph->bucket[idx].value[mph->bucket[idx].nitems] = value;
+  mph->bucket[idx].hash [mph->bucket[idx].nitems] = hash;
+  mph->bucket[idx].len  [mph->bucket[idx].nitems] = len;
+  mph->bucket[idx].key  [mph->bucket[idx].nitems] = malloc(len);
+  if (mph->bucket[idx].key  [mph->bucket[idx].nitems] == NULL) {
+    return -1;
+  }
+  memcpy(mph->bucket[idx].key  [mph->bucket[idx].nitems], key, len);
+  
+  // Bump the count of items in the hashmap
+  mph->bucket[idx].nitems++;
+  mph->total_items++;
+  
+  // If hashmap is out of room, then increase the capacity
+  if (mph->bucket[idx].nitems >= mph->bucket[idx].capacity) {
+    mph->bucket[idx].capacity *= 2;
+    mph->bucket[idx].value = realloc(mph->bucket[idx].value, (size_t)mph->bucket[idx].capacity * sizeof(size_t));
+    mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , (size_t)mph->bucket[idx].capacity * sizeof(uint32_t));
+    mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , (size_t)mph->bucket[idx].capacity * sizeof(size_t));
+    mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , (size_t)mph->bucket[idx].capacity * sizeof(uint8_t *));
+  }
+  
+  return (int)value;
+}
+
+
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -194,32 +232,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint8_t *key = (uint8_t *)s;
     size_t len   = (size_t)strlen(s);
     
-    // Hash key, and calculate the bucket
-    uint32_t h   = fnv1a(key, len);
-    uint32_t idx = h % nbuckets;
-    
-    // Add key to the hashmap
-    mph->bucket[idx].value[mph->bucket[idx].nitems] = i;
-    mph->bucket[idx].hash [mph->bucket[idx].nitems] = h;
-    mph->bucket[idx].len  [mph->bucket[idx].nitems] = len;
-    mph->bucket[idx].key  [mph->bucket[idx].nitems] = malloc(len);
-    if (mph->bucket[idx].key  [mph->bucket[idx].nitems] == NULL) {
-      Rf_error("Adding key failed");
-    }
-    memcpy(mph->bucket[idx].key  [mph->bucket[idx].nitems], key, len);
-    
-    // Bump the count of items in the hashmap
-    mph->bucket[idx].nitems++;
-    mph->total_items++;
-    
-    // If hashmap is out of room, then increase the capacity
-    if (mph->bucket[idx].nitems >= mph->bucket[idx].capacity) {
-      mph->bucket[idx].capacity *= 2;
-      mph->bucket[idx].value = realloc(mph->bucket[idx].value, (size_t)mph->bucket[idx].capacity * sizeof(size_t));
-      mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , (size_t)mph->bucket[idx].capacity * sizeof(uint32_t));
-      mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , (size_t)mph->bucket[idx].capacity * sizeof(size_t));
-      mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , (size_t)mph->bucket[idx].capacity * sizeof(uint8_t *));
-    }
+    mph_add(mph, key, len);
   }
   
   
