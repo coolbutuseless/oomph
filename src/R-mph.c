@@ -64,13 +64,13 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Setup the intermediate buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  uint32_t nbuckets = (uint32_t)Rf_length(s_) * size_factor;
+  size_t nbuckets = (size_t)(Rf_length(s_) * size_factor);
   if (nbuckets < 1) {
     Rf_error("Hash with zero buckets not possible");
   }
   
   if (Rf_asInteger(verbosity_) > 0) {
-    Rprintf("N buckets: %i\n", nbuckets);
+    Rprintf("N buckets: %i\n", (int)nbuckets);
   }
   
   mph_t *mph = mph_init(nbuckets);
