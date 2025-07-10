@@ -32,7 +32,7 @@ uint32_t fnv1a(uint8_t *data, size_t len) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define BUCKET_START_CAPACITY 1
 typedef struct {
-  size_t *index;   // Array: Original index for each element in this bucket
+  size_t *value;   // Array:  for each element in this bucket
   uint32_t *hash;  // Array: Hash of the string
   char **s;        // Array: pointer to the string
   size_t *len;     // Array: the lengths of the string
@@ -74,7 +74,7 @@ static void bucket_extptr_finalizer(SEXP ptr_) {
     // int nkeys     = (uint32_t)INTEGER(hash_info_)[1];
     
     for (int i = 0; i < nbuckets; ++i) {
-      free(bucket[i].index);
+      free(bucket[i].value);
       free(bucket[i].hash);
       free(bucket[i].len);
       free(bucket[i].s);
@@ -118,8 +118,8 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    bucket[i].index = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
-    if (bucket[i].index == NULL) {
+    bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
+    if (bucket[i].value == NULL) {
       Rf_error("Failed to allocate bucket[%i]", i);
     }
     bucket[i].hash = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
@@ -144,20 +144,25 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
+    // Define the key
     uint8_t *data = (uint8_t *)s;
     size_t len = (size_t)strlen(s);
     
-    uint32_t h = fnv1a(data, len);
+    // Hash key, and calculate the bucket
+    uint32_t h   = fnv1a(data, len);
     uint32_t idx = h % nbuckets;
     
-    bucket[idx].index[bucket[idx].nitems] = i;
+    // Add key to the hashmap
+    bucket[idx].value[bucket[idx].nitems] = i;
     bucket[idx].hash [bucket[idx].nitems] = h;
     bucket[idx].len  [bucket[idx].nitems] = len;
     bucket[idx].s    [bucket[idx].nitems] = (char *)CHAR(STRING_ELT(s_, i));
     bucket[idx].nitems += 1;
+    
+    // If hashmap is out of room, then increase the capacity
     if (bucket[idx].nitems >= bucket[idx].capacity) {
       bucket[idx].capacity *= 2;
-      bucket[idx].index = realloc(bucket[idx].index, (size_t)bucket[idx].capacity * sizeof(size_t));
+      bucket[idx].value = realloc(bucket[idx].value, (size_t)bucket[idx].capacity * sizeof(size_t));
       bucket[idx].hash  = realloc(bucket[idx].hash , (size_t)bucket[idx].capacity * sizeof(uint32_t));
       bucket[idx].len   = realloc(bucket[idx].len  , (size_t)bucket[idx].capacity * sizeof(size_t));
       bucket[idx].s     = realloc(bucket[idx].s    , (size_t)bucket[idx].capacity * sizeof(uint8_t *));
@@ -191,7 +196,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     for (int i = 0; i < nbuckets; ++i) {
       Rprintf("[%3i  %s] ", i, bucket[i].nitems == 1 ? "1" : " ");
       for (int j = 0; j < bucket[i].nitems; ++j) {
-        Rprintf("%3i ", (int)bucket[i].index[j]);
+        Rprintf("%3i ", (int)bucket[i].value[j]);
       }
       Rprintf("\n");
     }
@@ -221,7 +226,7 @@ int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
   
   for (int j = 0; j < bucket[idx].nitems; ++j) {
     if (bucket[idx].hash[j] == h && memcmp(s, bucket[idx].s[j], bucket[idx].len[j]) == 0) {
-      return bucket[idx].index[j];
+      return bucket[idx].value[j];
     }
   }
   
