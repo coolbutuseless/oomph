@@ -145,11 +145,11 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
     // Define the key
-    uint8_t *data = (uint8_t *)s;
-    size_t len = (size_t)strlen(s);
+    uint8_t *key = (uint8_t *)s;
+    size_t len   = (size_t)strlen(s);
     
     // Hash key, and calculate the bucket
-    uint32_t h   = fnv1a(data, len);
+    uint32_t h   = fnv1a(key, len);
     uint32_t idx = h % nbuckets;
     
     // Add key to the hashmap
@@ -220,14 +220,14 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Lookup a single string in the hashmap
+// Lookup a single key in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-int mph_lookup(uint8_t *data, size_t len, bucket_t *bucket, int nbuckets) {
-  uint32_t h   = fnv1a(data, len);
+int mph_lookup(uint8_t *key, size_t len, bucket_t *bucket, int nbuckets) {
+  uint32_t h   = fnv1a(key, len);
   uint32_t idx = h % nbuckets;
   
   for (int j = 0; j < bucket[idx].nitems; ++j) {
-    if (bucket[idx].hash[j] == h && memcmp(data, bucket[idx].key[j], bucket[idx].len[j]) == 0) {
+    if (bucket[idx].hash[j] == h && memcmp(key, bucket[idx].key[j], bucket[idx].len[j]) == 0) {
       return bucket[idx].value[j];
     }
   }
