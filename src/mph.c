@@ -103,7 +103,9 @@ int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
   uint32_t idx = h % mph->nbuckets;
   
   for (int j = 0; j < mph->bucket[idx].nitems; ++j) {
-    if (mph->bucket[idx].hash[j] == h && memcmp(key, mph->bucket[idx].key[j], mph->bucket[idx].len[j]) == 0) {
+    if (mph->bucket[idx].hash[j] == h && 
+        mph->bucket[idx].len[j]  == len &&
+        memcmp(key, mph->bucket[idx].key[j], mph->bucket[idx].len[j]) == 0) {
       return mph->bucket[idx].value[j];
     }
   }
