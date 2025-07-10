@@ -33,9 +33,9 @@ uint32_t fnv1a(uint8_t *data, size_t len) {
 #define BUCKET_START_CAPACITY 1
 typedef struct {
   uint8_t **key;   // Array: pointer to the keys (hash retrains a copy of original key)
-  size_t *value;   // Array: integer value for each key i.e. index of insertion order
-  uint32_t *hash;  // Array: hash of the key
   size_t *len;     // Array: the lengths of each key
+  uint32_t *hash;  // Array: hash of the key
+  size_t *value;   // Array: integer value for each key i.e. index of insertion order
   size_t nitems;   // the number of items in this bucket
   size_t capacity; // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;
@@ -86,34 +86,18 @@ static void bucket_extptr_finalizer(SEXP ptr_) {
 }
 
 
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Initialise the hashmap
+// Initialize a hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Size factor
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  double size_factor = Rf_asReal(size_factor_);
-  if (size_factor < 0.2 || size_factor > 100) {
-    Rf_error("Bad size factor. Should be in range [0.5, 100], but got: %.1f", size_factor);
-  }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Setup the intermediate buckets
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  uint32_t nbuckets = (uint32_t)Rf_length(s_) * size_factor;
+bucket_t *mph_init(size_t nbuckets) {
   if (nbuckets < 1) {
-    Rf_error("Hash with zero buckets not possible");
+    return NULL;
   }
   bucket_t *bucket = calloc((size_t)nbuckets, sizeof(bucket_t));
   
   if (bucket == NULL) {
-    Rf_error("Failed to allocate bucket_t array");
-  }
-  
-  if (Rf_asInteger(verbosity_) > 0) {
-    Rprintf("N buckets: %i\n", nbuckets);
+    return NULL;
   }
   
   
@@ -138,6 +122,40 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     bucket[i].capacity = BUCKET_START_CAPACITY;
   }
   
+  return bucket;
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Initialise the hashmap
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Size factor
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  double size_factor = Rf_asReal(size_factor_);
+  if (size_factor < 0.2 || size_factor > 100) {
+    Rf_error("Bad size factor. Should be in range [0.5, 100], but got: %.1f", size_factor);
+  }
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup the intermediate buckets
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  uint32_t nbuckets = (uint32_t)Rf_length(s_) * size_factor;
+  if (nbuckets < 1) {
+    Rf_error("Hash with zero buckets not possible");
+  }
+  
+  if (Rf_asInteger(verbosity_) > 0) {
+    Rprintf("N buckets: %i\n", nbuckets);
+  }
+  
+  bucket_t *bucket = mph_init(nbuckets);
+  if (bucket == NULL) {
+    Rf_error("mph_init_(): Couldn't initialise hash");
+  }
+ 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Bucket all the strings
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
