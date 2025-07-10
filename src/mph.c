@@ -18,10 +18,10 @@ const uint32_t Seed  = 0x811C9DC5; // 2166136261
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // FNV1 which does not accept a seed argument
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-uint32_t fnv1a(const char* text) {   
+uint32_t fnv1a(uint8_t *data, size_t len) {
   uint32_t hash = 0x01000193;
-  while (*text)     
-    hash = ((uint32_t)*text++ ^ hash) * Prime;   
+  for (size_t i = 0; i < len; i++)     
+    hash = ((uint32_t)*data++ ^ hash) * Prime;   
   return hash; 
 }
 
@@ -142,7 +142,8 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Bucket all the strings
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
-    uint32_t h = fnv1a(CHAR(STRING_ELT(s_, i)));
+    const char *s = CHAR(STRING_ELT(s_, i));
+    uint32_t h = fnv1a((uint8_t *)s, strlen(s));
     uint32_t idx = h % nbuckets;
     bucket[idx].index[bucket[idx].nitems] = i;
     bucket[idx].hash   [bucket[idx].nitems] = h;
@@ -210,7 +211,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
 // Lookup a single string in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int mph_lookup(const char *s, bucket_t *bucket, int nbuckets) {
-  uint32_t h = fnv1a(s);
+  uint32_t h = fnv1a((uint8_t *)s, strlen(s));
   uint32_t idx = h % nbuckets;
   
   for (int j = 0; j < bucket[idx].nitems; ++j) {
