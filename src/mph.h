@@ -8,8 +8,8 @@
 typedef struct {
   uint8_t **key;   // Array: pointer to the keys (hash retrains a copy of original key)
   size_t *len;     // Array: the lengths of each key
-  uint32_t *hash;  // Array: hash of the key
-  int32_t *value;   // Array: integer value for each key i.e. index of insertion order
+  uint64_t *hash;  // Array: hash of the key
+  int32_t *value;  // Array: integer value for each key i.e. index of insertion order
   size_t nitems;   // the number of items in this bucket
   size_t capacity; // the capacity of this bucket (for triggering re-alloc)
 } bucket_t;

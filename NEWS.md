@@ -1,4 +1,7 @@
 
+# oomph 0.1.3  2026-03-02
+
+* Switch from FNV1 to ChibiHash
 
 # oomph 0.1.2  2025-07-07
 

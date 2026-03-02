@@ -9,21 +9,7 @@
 #include <string.h>
 
 #include "mph.h"
-
-
-const uint32_t Prime = 0x01000193; //   16777619 
-const uint32_t Seed  = 0x811C9DC5; // 2166136261
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// FNV1 which does not accept a seed argument
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-uint32_t fnv1a(uint8_t *data, size_t len) {
-  uint32_t hash = 0x01000193;
-  for (size_t i = 0; i < len; i++)     
-    hash = ((uint32_t)*data++ ^ hash) * Prime;   
-  return hash; 
-}
+#include "chibihash.h"
 
 
 
@@ -75,12 +61,12 @@ mph_t *mph_init(size_t nbuckets) {
   
   
   for (int i = 0; i < nbuckets; ++i) {
-    mph->bucket[i].nitems = 0;
+    mph->bucket[i].nitems   = 0;
     mph->bucket[i].capacity = BUCKET_START_CAPACITY;
-    mph->bucket[i].value = calloc(BUCKET_START_CAPACITY, sizeof(int32_t));
-    mph->bucket[i].hash  = calloc(BUCKET_START_CAPACITY, sizeof(uint32_t));
-    mph->bucket[i].key   = calloc(BUCKET_START_CAPACITY, sizeof(uint8_t *));
-    mph->bucket[i].len   = calloc(BUCKET_START_CAPACITY, sizeof(size_t));
+    mph->bucket[i].value    = malloc(BUCKET_START_CAPACITY * sizeof(int32_t));
+    mph->bucket[i].hash     = malloc(BUCKET_START_CAPACITY * sizeof(uint32_t));
+    mph->bucket[i].key      = malloc(BUCKET_START_CAPACITY * sizeof(uint8_t *));
+    mph->bucket[i].len      = malloc(BUCKET_START_CAPACITY * sizeof(size_t));
     
     if (mph->bucket[i].value == NULL || mph->bucket[i].hash == NULL || mph->bucket[i].key == NULL ||
         mph->bucket[i].len == NULL) {
@@ -99,8 +85,8 @@ mph_t *mph_init(size_t nbuckets) {
 // Lookup a single key in the hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
-  uint32_t h   = fnv1a(key, len);
-  uint32_t idx = h % mph->nbuckets;
+  const uint64_t h = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
+  const uint32_t idx = (uint32_t)(h % mph->nbuckets);
   
   for (int j = 0; j < mph->bucket[idx].nitems; ++j) {
     if (mph->bucket[idx].hash[j] == h && 
@@ -121,20 +107,20 @@ int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_add(mph_t *mph, uint8_t *key, size_t len) {
   // Hash key, and calculate the bucket
-  uint32_t hash = fnv1a(key, len);
-  uint32_t idx  = hash % mph->nbuckets;
-  
-  int32_t value = (int32_t)mph->total_items;
+  const uint64_t hash = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
+  const uint32_t idx  = (uint32_t)(hash % mph->nbuckets);
+  const int32_t value = (int32_t)mph->total_items;
   
   // Add key to the hashmap
-  mph->bucket[idx].value[mph->bucket[idx].nitems] = value;
-  mph->bucket[idx].hash [mph->bucket[idx].nitems] = hash;
-  mph->bucket[idx].len  [mph->bucket[idx].nitems] = len;
-  mph->bucket[idx].key  [mph->bucket[idx].nitems] = malloc(len);
-  if (mph->bucket[idx].key  [mph->bucket[idx].nitems] == NULL) {
+  const size_t nitems = mph->bucket[idx].nitems;
+  mph->bucket[idx].value[nitems] = value;
+  mph->bucket[idx].hash [nitems] = hash;
+  mph->bucket[idx].len  [nitems] = len;
+  mph->bucket[idx].key  [nitems] = malloc(len);
+  if (mph->bucket[idx].key  [nitems] == NULL) {
     return -1;
   }
-  memcpy(mph->bucket[idx].key  [mph->bucket[idx].nitems], key, len);
+  memcpy(mph->bucket[idx].key  [nitems], key, len);
   
   // Bump the count of items in the hashmap
   mph->bucket[idx].nitems++;
@@ -144,7 +130,7 @@ int32_t mph_add(mph_t *mph, uint8_t *key, size_t len) {
   if (mph->bucket[idx].nitems >= mph->bucket[idx].capacity) {
     mph->bucket[idx].capacity *= 2;
     mph->bucket[idx].value = realloc(mph->bucket[idx].value, mph->bucket[idx].capacity * sizeof(int32_t));
-    mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , mph->bucket[idx].capacity * sizeof(uint32_t));
+    mph->bucket[idx].hash  = realloc(mph->bucket[idx].hash , mph->bucket[idx].capacity * sizeof(uint64_t));
     mph->bucket[idx].len   = realloc(mph->bucket[idx].len  , mph->bucket[idx].capacity * sizeof(size_t));
     mph->bucket[idx].key   = realloc(mph->bucket[idx].key  , mph->bucket[idx].capacity * sizeof(uint8_t *));
   }
