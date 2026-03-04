@@ -64,7 +64,7 @@ mph_t *mph_init(size_t nbuckets) {
     mph->bucket[i].nitems   = 0;
     mph->bucket[i].capacity = BUCKET_START_CAPACITY;
     mph->bucket[i].value    = malloc(BUCKET_START_CAPACITY * sizeof(int32_t));
-    mph->bucket[i].hash     = malloc(BUCKET_START_CAPACITY * sizeof(uint32_t));
+    mph->bucket[i].hash     = malloc(BUCKET_START_CAPACITY * sizeof(uint64_t));
     mph->bucket[i].key      = malloc(BUCKET_START_CAPACITY * sizeof(uint8_t *));
     mph->bucket[i].len      = malloc(BUCKET_START_CAPACITY * sizeof(size_t));
     
