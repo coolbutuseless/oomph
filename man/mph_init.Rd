@@ -4,13 +4,13 @@
 \alias{mph_init}
 \title{Initialise a hash object with the given set of strings}
 \usage{
-mph_init(s, size_factor = 1, verbosity = 0L)
+mph_init(s, size_factor = 3, verbosity = 0L)
 }
 \arguments{
 \item{s}{character vector. Duplicates and NAs are not 
 allowed.}
 
-\item{size_factor}{Adjusts the internal number of hash slots. Default: 1. Increasing 
+\item{size_factor}{Adjusts the internal number of hash slots. Default: 2. Increasing 
 this factor lowers the chance of hash collisions and may speed up the
 overall performance.}
 

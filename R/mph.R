@@ -5,7 +5,7 @@
 #' 
 #' @param s character vector. Duplicates and NAs are not 
 #'    allowed.
-#' @param size_factor Adjusts the internal number of hash slots. Default: 1. Increasing 
+#' @param size_factor Adjusts the internal number of hash slots. Default: 2. Increasing 
 #'    this factor lowers the chance of hash collisions and may speed up the
 #'    overall performance.
 #' @param verbosity What level of debugging information should be output? Default: 0
@@ -17,7 +17,7 @@
 #' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_init <- function(s, size_factor = 1, verbosity = 0L) {
+mph_init <- function(s, size_factor = 3, verbosity = 0L) {
   
   stopifnot(exprs = {
     is.character(s)

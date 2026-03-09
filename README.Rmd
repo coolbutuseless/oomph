@@ -98,22 +98,26 @@ mph <- mph_init(nms) # Allocate exactly length(nms) buckets
 ```{r match}
 bench::mark(
   match(t0, nms),
-  mph_match(t0, mph)
+  mph_match(t0, mph),
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t1, nms),
-  mph_match(t1, mph)
+  mph_match(t1, mph),
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t2, nms),
-  mph_match(t2, mph)
+  mph_match(t2, mph),
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t3, nms),
-  mph_match(t3, mph)
+  mph_match(t3, mph),
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 ```
 
@@ -125,7 +129,8 @@ bench::mark(
 ```{r vector-subset}
 bench::mark(
   big_vector[t2],
-  big_vector[mph_match(t2, mph)]
+  big_vector[mph_match(t2, mph)],
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 ```
 
@@ -140,7 +145,8 @@ ee <- as.environment(big_list)
 bench::mark(
   `Standard R`           = big_list[t2],
   `R hashed environment` = mget(t2, ee),
-  `[] and mph indexing`  = big_list[mph_match(t2, mph)]
+  `[] and mph indexing`  = big_list[mph_match(t2, mph)],
+  check = FALSE
 )[, 1:5] |> knitr::kable()
 ```
 

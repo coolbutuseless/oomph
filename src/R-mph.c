@@ -88,42 +88,17 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint8_t *key = (uint8_t *)s;
     size_t len   = (size_t)strlen(s);
     
-    int res = mph_add(mph, key, len);
-    if (res < 0) {
+    if (!mph_add(mph, key, len)) {
       Rf_error("mph_init_(): Error adding item %i: '%s'", i, s);
     }
   }
-  
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Dump bucket stats
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (Rf_asInteger(verbosity_) > 0) {
-    int zeros = 0;
-    int ones  = 0;
-    int mores = 0;
-    for (int i = 0; i < nbuckets; ++i) {
-      if (mph->bucket[i].nitems == 0) {
-        ++zeros;
-      } else if (mph->bucket[i].nitems == 1) {
-        ++ones;
-      } else {
-        ++mores;
-      }
-    }  
-    Rprintf("Items/Bucket: 0: %i,  1: %i, 2+: %i\n", zeros, ones, mores);
-  }
-  
+
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Dump buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (Rf_asInteger(verbosity_) > 1) {
     for (int i = 0; i < mph->nbuckets; ++i) {
-      Rprintf("[%3i  %s] ", i, mph->bucket[i].nitems == 1 ? "1" : " ");
-      for (int j = 0; j < mph->bucket[i].nitems; ++j) {
-        Rprintf("%3i ", mph->bucket[i].value[j]);
-      }
-      Rprintf("\n");
+      Rprintf("[%3i] %3i\n", i, mph->bucket[i].value);
     }
   }
   
@@ -158,7 +133,7 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
     int idx = mph_lookup(mph, (uint8_t *)s, strlen(s));
-    res[i] = idx < 0 ? NA_INTEGER : idx + 1;
+    res[i] = idx == 0 ? NA_INTEGER : idx;
   }
   
   UNPROTECT(1);

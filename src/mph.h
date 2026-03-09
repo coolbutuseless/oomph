@@ -4,14 +4,11 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define BUCKET_START_CAPACITY 1
 typedef struct {
-  uint8_t **key;   // Array: pointer to the keys (hash retrains a copy of original key)
-  size_t *len;     // Array: the lengths of each key
-  uint64_t *hash;  // Array: hash of the key
-  int32_t *value;  // Array: integer value for each key i.e. index of insertion order
-  size_t nitems;   // the number of items in this bucket
-  size_t capacity; // the capacity of this bucket (for triggering re-alloc)
+  uint8_t *key;    // Array: pointer to the keys (hash retrains a copy of original key)
+  size_t   len;    // Array: the lengths of each key
+  uint64_t hash;   // Array: hash of the key
+  int32_t  value;  // Array: integer value for each key i.e. index of insertion order
 } bucket_t;
 
 
@@ -50,10 +47,9 @@ void mph_destroy(mph_t *mph);
 // @param mph mph_t object
 // @param key byte data
 // @param len length of data in 'key'
-// @return the int32_t value that is stored by this key
-//         Caller must check return value. If <0 then an error has occurred
+// @return boolean. Success?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-int32_t mph_add(mph_t *mph, uint8_t *key, size_t len);
+bool mph_add(mph_t *mph, uint8_t *key, size_t len);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Lookup a key in the hashmap.

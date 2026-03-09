@@ -1,4 +1,8 @@
 
+# oomph 0.1.4 2026-03-09
+
+* Switch from chaining to open-addressing/linear probing.
+
 # oomph 0.1.3  2026-03-02
 
 * Switch from FNV1 to ChibiHash
