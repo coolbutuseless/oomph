@@ -17,7 +17,7 @@
 #' mph_match(c('h', 'e', 'l', 'l', 'o'), mph)
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_init <- function(s, size_factor = 3, verbosity = 0L) {
+mph_init <- function(s, size_factor = 2, verbosity = 0L) {
   
   stopifnot(exprs = {
     is.character(s)

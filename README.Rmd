@@ -22,12 +22,14 @@ library(oomph)
 [![R-CMD-check](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/coolbutuseless/oomph/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-`oomph` is a package for fast string matching within a static set of strings.
+`oomph` is a package for fast string matching within a static set of strings - 
+where each string maps to its integer position.
+
 This is useful for fast named look-up in fixed lists and vectors.
 
-Internally this uses a hash-map in C to map strings to integers.  In R, 
-this appears as a minimal perfect hash where each string maps to its index, 
-and unknown strings return `NA`
+Internally this uses a hashmap written in C to map strings to integers.  In R, 
+this appears as a minimal perfect hash where each string maps to its position in the 
+original data (unknown strings will return `NA`).
 
 The hashed look-up can be more than **1000x** faster than R's standard look-up method (depending on 
 number of elements in original object and the number of elements to extract).
@@ -35,10 +37,7 @@ number of elements in original object and the number of elements to extract).
 
 ## What's in the box
 
-* `mph <- mph_init(s, size_factor)` initialise a hash with the given set of strings
-    * Using a larger `size_factor` (than the default of `1`) decreases the number 
-      of hash collisions, and can make other operations faster at the cost or
-      more memory being allocated.
+* `mph <- mph_init(s)` initialise a hashmap with the given set of strings
 * `mph_match(s, mph)` find the indices of the strings `s` (equivalent to R's `match()`)
 
 
@@ -52,7 +51,19 @@ You can install from [GitHub](https://github.com/coolbutuseless/oomph) with:
 remotes::install_github('coolbutuseless/oomph')
 ```
 
-## Setup test data
+## Simple example
+
+```{r}
+mph <- mph_init(c('mary', 'had', 'a', 'little', 'lamb'))
+mph_match('mary', mph)
+mph_match('lamb', mph)
+mph_match('monkey', mph) # not a string from the original vector.
+```
+
+
+## Benchmarking
+
+### Setup benchmark data
 
 
 ```{r}
@@ -84,15 +95,15 @@ t2  <- sample(nms,  100, replace = TRUE)
 t3  <- sample(nms, 1000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# By default, the number of hash buckets is the same as the number of 
+# By default, the number of hashmap buckets is twice the number of 
 # strings.  To reduce the possibility of hash collisions (and possibly make look-ups
-# faster), the number of hash buckets can be changed using the 'size_factor'
+# faster), the number of hashmap buckets can be increased by increasing 'size_factor'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph <- mph_init(nms) # Allocate exactly length(nms) buckets
+mph <- mph_init(nms) 
 ```
 
 
-## Compare `match()` with `mph_match()`
+### Compare base R `match()` with oomph's `mph_match()`
 
 
 ```{r match}
@@ -124,7 +135,7 @@ bench::mark(
 
 
 
-## Vector subsetting - Extract 100 elements of a `vector` by name
+### Vector subsetting - Extract 100 elements of a `vector` by name
 
 ```{r vector-subset}
 bench::mark(
@@ -135,7 +146,7 @@ bench::mark(
 ```
 
 
-## List subsetting - Extract 100 elements of a `list` by name
+### List subsetting - Extract 100 elements of a `list` by name
 
 Also compare to using hashed named lookup in a standard R environment
 
@@ -152,7 +163,7 @@ bench::mark(
 
 
 
-## Time taken to build the hash
+### Time taken to build the hashmap
 
 ```{r}
 set.seed(1)
@@ -174,85 +185,4 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 
 ```
-
-
-## Billion Row Challenge indexing
-
-The following example is a part of the [billion row challenge](https://github.com/jrosell/1br).
-
-In this example, we are attempting to keep a streaming tally of the 3-letter codes
-which are seen.
-
-```{r warning=FALSE}
-library(oomph)
-library(insitu)
-
-nms <- expand.grid(LETTERS, LETTERS, LETTERS) |> 
-  apply(1, paste0, collapse = "")
-
-counts <- numeric(length(nms))
-names(counts) <- nms
-mph <- mph_init(nms)
-
-set.seed(1)
-random_nms <- sample(nms, 1000)
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# updating in bulk
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bench::mark(
-  baseR            = {i <- match(random_nms, nms); counts[i] <- counts[i] + 1},
-  oomph            = {i <- mph_match(random_nms, mph); counts[i] <- counts[i] + 1},
-  `oomph + insitu` = {br_add(counts, 1, idx =  mph_match(random_nms, mph))},
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Updating within a for loop
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bench::mark(
-  baseR = {
-    for (nm in random_nms) {
-      i <- match(nm, nms)
-      counts[i] <- counts[i] + 1
-    }
-  },
-  oomph = {
-    for (nm in random_nms) {
-      i <- mph_match(nm, mph)
-      counts[i] <- counts[i] + 1
-    }
-  },
-  `oomph + insitu` = {
-    for (nm in random_nms) {
-      br_add(counts, 1, idx = mph_match(nm, mph))
-    }
-  },
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

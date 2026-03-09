@@ -4,7 +4,7 @@
 \alias{mph_init}
 \title{Initialise a hash object with the given set of strings}
 \usage{
-mph_init(s, size_factor = 3, verbosity = 0L)
+mph_init(s, size_factor = 2, verbosity = 0L)
 }
 \arguments{
 \item{s}{character vector. Duplicates and NAs are not 
