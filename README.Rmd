@@ -89,10 +89,9 @@ names(big_list  ) <- nms
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Probe sets to use for testing
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-t0  <- sample(nms,    1, replace = TRUE)
-t1  <- sample(nms,   10, replace = TRUE)
-t2  <- sample(nms,  100, replace = TRUE)
-t3  <- sample(nms, 1000, replace = TRUE)
+t2  <- sample(nms,   100, replace = TRUE)
+t3  <- sample(nms,  1000, replace = TRUE)
+t4  <- sample(nms, 10000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # By default, the number of hashmap buckets is twice the number of 
@@ -108,27 +107,21 @@ mph <- mph_init(nms)
 
 ```{r match}
 bench::mark(
-  match(t0, nms),
-  mph_match(t0, mph),
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-
-bench::mark(
-  match(t1, nms),
-  mph_match(t1, mph),
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-
-bench::mark(
   match(t2, nms),
   mph_match(t2, mph),
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 
 bench::mark(
   match(t3, nms),
   mph_match(t3, mph),
-  check = FALSE
+  check = TRUE
+)[, 1:5] |> knitr::kable()
+
+bench::mark(
+  match(t4, nms),
+  mph_match(t4, mph),
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
@@ -141,7 +134,7 @@ bench::mark(
 bench::mark(
   big_vector[t2],
   big_vector[mph_match(t2, mph)],
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
@@ -157,7 +150,7 @@ bench::mark(
   `Standard R`           = big_list[t2],
   `R hashed environment` = mget(t2, ee),
   `[] and mph indexing`  = big_list[mph_match(t2, mph)],
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
@@ -181,7 +174,7 @@ bench::mark(
   mph_init(nms1k),
   mph_init(nms10k),
   mph_init(nms100k),
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 
 ```

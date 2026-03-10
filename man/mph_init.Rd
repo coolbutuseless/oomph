@@ -7,8 +7,8 @@
 mph_init(s, size_factor = 2, verbosity = 0L)
 }
 \arguments{
-\item{s}{character vector. Duplicates and NAs are not 
-allowed.}
+\item{s}{character vector. NAs must not be present. If duplicates are present
+then \code{mph_match()} will only return the index of the first occurrence.}
 
 \item{size_factor}{Adjusts the internal number of hash slots. Default: 2. Increasing 
 this factor lowers the chance of hash collisions and may speed up the

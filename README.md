@@ -92,10 +92,9 @@ names(big_list  ) <- nms
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Probe sets to use for testing
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-t0  <- sample(nms,    1, replace = TRUE)
-t1  <- sample(nms,   10, replace = TRUE)
-t2  <- sample(nms,  100, replace = TRUE)
-t3  <- sample(nms, 1000, replace = TRUE)
+t2  <- sample(nms,   100, replace = TRUE)
+t3  <- sample(nms,  1000, replace = TRUE)
+t4  <- sample(nms, 10000, replace = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # By default, the number of hashmap buckets is twice the number of 
@@ -109,55 +108,42 @@ mph <- mph_init(nms)
 
 ``` r
 bench::mark(
-  match(t0, nms),
-  mph_match(t0, mph),
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-```
-
-| expression         |   min |   median |      itr/sec | mem_alloc |
-|:-------------------|------:|---------:|-------------:|----------:|
-| match(t0, nms)     | 878µs |   1.13ms |     865.4985 |    3.82MB |
-| mph_match(t0, mph) | 246ns | 328.06ns | 2359452.7544 |        0B |
-
-``` r
-bench::mark(
-  match(t1, nms),
-  mph_match(t1, mph),
-  check = FALSE
-)[, 1:5] |> knitr::kable()
-```
-
-| expression         |      min |   median |      itr/sec | mem_alloc |
-|:-------------------|---------:|---------:|-------------:|----------:|
-| match(t1, nms)     |   5.69ms |   6.16ms |     160.4282 |    7.82MB |
-| mph_match(t1, mph) | 369.04ns | 450.99ns | 2021899.3830 |        0B |
-
-``` r
-bench::mark(
   match(t2, nms),
   mph_match(t2, mph),
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |    min | median |     itr/sec | mem_alloc |
-|:-------------------|-------:|-------:|------------:|----------:|
-| match(t2, nms)     | 5.41ms | 5.68ms |    176.5015 |    7.82MB |
-| mph_match(t2, mph) | 2.42µs | 2.58µs | 379750.3944 |      448B |
+| expression         |    min | median |    itr/sec | mem_alloc |
+|:-------------------|-------:|-------:|-----------:|----------:|
+| match(t2, nms)     | 4.89ms | 5.09ms |    194.097 |    7.82MB |
+| mph_match(t2, mph) | 2.46µs | 2.62µs | 354600.372 |      448B |
 
 ``` r
 bench::mark(
   match(t3, nms),
   mph_match(t3, mph),
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |     min | median |    itr/sec | mem_alloc |
-|:-------------------|--------:|-------:|-----------:|----------:|
-| match(t3, nms)     |  5.67ms |  5.9ms |   168.2901 |    7.83MB |
-| mph_match(t3, mph) | 26.57µs | 27.7µs | 34571.8071 |    3.95KB |
+| expression         |     min |  median |    itr/sec | mem_alloc |
+|:-------------------|--------:|--------:|-----------:|----------:|
+| match(t3, nms)     |  5.29ms |  5.64ms |   176.2394 |    7.83MB |
+| mph_match(t3, mph) | 26.77µs | 28.86µs | 33050.0636 |    3.95KB |
+
+``` r
+bench::mark(
+  match(t4, nms),
+  mph_match(t4, mph),
+  check = TRUE
+)[, 1:5] |> knitr::kable()
+```
+
+| expression         |      min |  median |   itr/sec | mem_alloc |
+|:-------------------|---------:|--------:|----------:|----------:|
+| match(t4, nms)     |   5.01ms |   5.4ms |  186.1082 |    7.93MB |
+| mph_match(t4, mph) | 300.08µs | 314.6µs | 3135.5102 |   39.11KB |
 
 ### Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -165,14 +151,14 @@ bench::mark(
 bench::mark(
   big_vector[t2],
   big_vector[mph_match(t2, mph)],
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression                       |    min | median |     itr/sec | mem_alloc |
-|:---------------------------------|-------:|-------:|------------:|----------:|
-| big_vector\[t2\]                 | 6.33ms | 6.74ms |    148.1325 |    7.82MB |
-| big_vector\[mph_match(t2, mph)\] | 3.16µs | 3.48µs | 254227.5593 |     1.7KB |
+| expression                       |    min | median |    itr/sec | mem_alloc |
+|:---------------------------------|-------:|-------:|-----------:|----------:|
+| big_vector\[t2\]                 | 5.08ms | 5.78ms |    172.575 |    7.82MB |
+| big_vector\[mph_match(t2, mph)\] | 3.16µs | 3.57µs | 251813.371 |     1.7KB |
 
 ### List subsetting - Extract 100 elements of a `list` by name
 
@@ -185,15 +171,15 @@ bench::mark(
   `Standard R`           = big_list[t2],
   `R hashed environment` = mget(t2, ee),
   `[] and mph indexing`  = big_list[mph_match(t2, mph)],
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
 | expression            |     min |  median |     itr/sec | mem_alloc |
 |:----------------------|--------:|--------:|------------:|----------:|
-| Standard R            |  6.01ms |  6.17ms |    160.7191 |    7.82MB |
-| R hashed environment  | 18.66µs | 18.86µs |  52150.0227 |      848B |
-| \[\] and mph indexing |  3.57µs |  3.81µs | 247564.5570 |    2.09KB |
+| Standard R            |  5.58ms |  6.08ms |    166.3796 |    7.82MB |
+| R hashed environment  | 18.82µs | 20.25µs |  47202.5860 |      848B |
+| \[\] and mph indexing |  3.57µs |  3.98µs | 221618.1936 |    2.09KB |
 
 ### Time taken to build the hashmap
 
@@ -213,12 +199,12 @@ bench::mark(
   mph_init(nms1k),
   mph_init(nms10k),
   mph_init(nms100k),
-  check = FALSE
+  check = TRUE
 )[, 1:5] |> knitr::kable()
 ```
 
 | expression        |      min |   median |    itr/sec | mem_alloc |
 |:------------------|---------:|---------:|-----------:|----------:|
-| mph_init(nms1k)   |  74.13µs |  80.56µs | 9257.35214 |      12KB |
-| mph_init(nms10k)  | 658.75µs | 745.85µs |  748.92179 |  167.16KB |
-| mph_init(nms100k) |   8.91ms |   9.45ms |   78.85602 |    1.38MB |
+| mph_init(nms1k)   |  41.94µs |  50.43µs | 19438.7920 |        0B |
+| mph_init(nms10k)  | 460.72µs | 528.33µs |  1878.0500 |        0B |
+| mph_init(nms100k) |   5.25ms |   5.62ms |   168.1992 |        0B |

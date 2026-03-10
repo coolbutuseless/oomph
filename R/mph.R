@@ -3,8 +3,8 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Initialise a hash object with the given set of strings
 #' 
-#' @param s character vector. Duplicates and NAs are not 
-#'    allowed.
+#' @param s character vector. NAs must not be present. If duplicates are present
+#'        then \code{mph_match()} will only return the index of the first occurrence.
 #' @param size_factor Adjusts the internal number of hash slots. Default: 2. Increasing 
 #'    this factor lowers the chance of hash collisions and may speed up the
 #'    overall performance.
@@ -18,14 +18,6 @@
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mph_init <- function(s, size_factor = 2, verbosity = 0L) {
-  
-  stopifnot(exprs = {
-    is.character(s)
-    !anyNA(s)
-    min(nchar(s)) > 0
-    !anyDuplicated(s)
-  })
-  
   .Call(mph_init_, s, size_factor, verbosity)
 }
 

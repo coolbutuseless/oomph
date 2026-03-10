@@ -82,6 +82,9 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Bucket all the strings
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
+    if (STRING_ELT(s_, i) == NA_STRING) {
+      Rf_error("mph_init_(): Cannot add NAs to hashmap");
+    }
     const char *s = CHAR(STRING_ELT(s_, i));
     
     // Define the key
