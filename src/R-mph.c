@@ -129,8 +129,7 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // For each string, find its index. 
-  // If -1, then string was not found
-  // otherwise: Convert from C 0-index to R's 1-index
+  // If 0, then string was not found
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
