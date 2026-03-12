@@ -72,7 +72,7 @@ int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
     idx = (idx + 1) % mph->nbuckets;
   }
   
-  return 0;
+  return -1;
 }  
 
 
@@ -86,7 +86,7 @@ bool mph_add(mph_t *mph, uint8_t *key, size_t len) {
   // Hash key, and calculate the bucket
   const uint64_t hash = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
   uint32_t idx  = (uint32_t)(hash % mph->nbuckets);
-  const int32_t value = (int32_t)++mph->total_items;
+  const int32_t value = (int32_t)mph->total_items++;
   
   // Linear probing for an empty bucket
   while (mph->bucket[idx].key != NULL) {

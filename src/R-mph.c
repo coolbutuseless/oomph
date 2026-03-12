@@ -135,7 +135,7 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
     int idx = mph_lookup(mph, (uint8_t *)s, strlen(s));
-    res[i] = idx == 0 ? NA_INTEGER : idx;
+    res[i] = idx < 0 ? NA_INTEGER : idx + 1;
   }
   
   UNPROTECT(1);
