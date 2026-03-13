@@ -58,7 +58,7 @@ mph_t *mph_init(size_t nbuckets) {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Lookup a single key in the hashmap.
-// Returns the 1-based index
+// Returns the 0-based index
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
   const uint64_t h = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
@@ -79,8 +79,8 @@ int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len) {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Add a key to the hashmap
-// The value is implicitly the current 1-based index of the item in the hashmap
-// i.e. the first string added has a value of '1'
+// The value is implicitly set to the 0-based index of the item in the hashmap
+// i.e. the first string added has a value of '0'
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 bool mph_add(mph_t *mph, uint8_t *key, size_t len) {
   // Hash key, and calculate the bucket
