@@ -114,10 +114,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |    min | median |    itr/sec | mem_alloc |
-|:-------------------|-------:|-------:|-----------:|----------:|
-| match(t2, nms)     | 4.89ms | 5.09ms |    194.097 |    7.82MB |
-| mph_match(t2, mph) | 2.46µs | 2.62µs | 354600.372 |      448B |
+| expression         |    min | median |     itr/sec | mem_alloc |
+|:-------------------|-------:|-------:|------------:|----------:|
+| match(t2, nms)     | 4.99ms | 5.99ms |    165.7736 |    7.82MB |
+| mph_match(t2, mph) | 2.38µs | 3.03µs | 322519.8667 |      448B |
 
 ``` r
 bench::mark(
@@ -129,8 +129,8 @@ bench::mark(
 
 | expression         |     min |  median |    itr/sec | mem_alloc |
 |:-------------------|--------:|--------:|-----------:|----------:|
-| match(t3, nms)     |  5.29ms |  5.64ms |   176.2394 |    7.83MB |
-| mph_match(t3, mph) | 26.77µs | 28.86µs | 33050.0636 |    3.95KB |
+| match(t3, nms)     |  5.45ms |  6.02ms |   165.9522 |    7.83MB |
+| mph_match(t3, mph) | 26.73µs | 30.91µs | 31813.0245 |    3.95KB |
 
 ``` r
 bench::mark(
@@ -140,10 +140,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression         |      min |  median |   itr/sec | mem_alloc |
-|:-------------------|---------:|--------:|----------:|----------:|
-| match(t4, nms)     |   5.01ms |   5.4ms |  186.1082 |    7.93MB |
-| mph_match(t4, mph) | 300.08µs | 314.6µs | 3135.5102 |   39.11KB |
+| expression         |      min |   median |   itr/sec | mem_alloc |
+|:-------------------|---------:|---------:|----------:|----------:|
+| match(t4, nms)     |   5.25ms |   5.39ms |  182.1261 |    7.93MB |
+| mph_match(t4, mph) | 307.21µs | 330.67µs | 2916.0853 |   39.11KB |
 
 ### Vector subsetting - Extract 100 elements of a `vector` by name
 
@@ -155,10 +155,10 @@ bench::mark(
 )[, 1:5] |> knitr::kable()
 ```
 
-| expression                       |    min | median |    itr/sec | mem_alloc |
-|:---------------------------------|-------:|-------:|-----------:|----------:|
-| big_vector\[t2\]                 | 5.08ms | 5.78ms |    172.575 |    7.82MB |
-| big_vector\[mph_match(t2, mph)\] | 3.16µs | 3.57µs | 251813.371 |     1.7KB |
+| expression                       |    min | median |     itr/sec | mem_alloc |
+|:---------------------------------|-------:|-------:|------------:|----------:|
+| big_vector\[t2\]                 |  5.1ms | 6.04ms |    165.9051 |    7.82MB |
+| big_vector\[mph_match(t2, mph)\] | 3.12µs |  4.1µs | 227335.4983 |     1.7KB |
 
 ### List subsetting - Extract 100 elements of a `list` by name
 
@@ -177,9 +177,42 @@ bench::mark(
 
 | expression            |     min |  median |     itr/sec | mem_alloc |
 |:----------------------|--------:|--------:|------------:|----------:|
-| Standard R            |  5.58ms |  6.08ms |    166.3796 |    7.82MB |
-| R hashed environment  | 18.82µs | 20.25µs |  47202.5860 |      848B |
-| \[\] and mph indexing |  3.57µs |  3.98µs | 221618.1936 |    2.09KB |
+| Standard R            |  5.51ms |  5.64ms |    174.4341 |    7.82MB |
+| R hashed environment  | 18.33µs | 18.82µs |  51150.7710 |      848B |
+| \[\] and mph indexing |  3.65µs |  3.94µs | 229851.9970 |    2.09KB |
+
+### Factor creation
+
+Note: this is not a direct replacement for `as.factor()` as levels are
+in order of first seen, not alphabetical.
+
+``` r
+v <- c('h', 'e', 'l', 'l', 'o')
+mph_as_factor(v)
+```
+
+    #> [1] h e l l o
+    #> Levels: h e l o
+
+``` r
+as.factor(v)
+```
+
+    #> [1] h e l l o
+    #> Levels: e h l o
+
+``` r
+bench::mark(
+  as.factor(t4),
+  mph_as_factor(t4),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+| expression        |     min |  median |   itr/sec | mem_alloc |
+|:------------------|--------:|--------:|----------:|----------:|
+| as.factor(t4)     | 13.89ms | 14.69ms |  67.97609 |    1.33MB |
+| mph_as_factor(t4) |  1.16ms |  1.33ms | 720.43071 |  116.42KB |
 
 ### Time taken to build the hashmap
 
@@ -205,6 +238,6 @@ bench::mark(
 
 | expression        |      min |   median |    itr/sec | mem_alloc |
 |:------------------|---------:|---------:|-----------:|----------:|
-| mph_init(nms1k)   |  41.94µs |  50.43µs | 19438.7920 |        0B |
-| mph_init(nms10k)  | 460.72µs | 528.33µs |  1878.0500 |        0B |
-| mph_init(nms100k) |   5.25ms |   5.62ms |   168.1992 |        0B |
+| mph_init(nms1k)   |  42.97µs |  51.33µs | 19109.1432 |        0B |
+| mph_init(nms10k)  | 458.83µs | 542.92µs |  1840.9348 |        0B |
+| mph_init(nms100k) |   5.33ms |   5.85ms |   165.4952 |        0B |

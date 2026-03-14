@@ -91,7 +91,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint8_t *key = (uint8_t *)s;
     size_t len   = (size_t)strlen(s);
     
-    if (!mph_add(mph, key, len)) {
+    if (!mph_set(mph, key, len)) {
       Rf_error("mph_init_(): Error adding item %i: '%s'", i, s);
     }
   }
@@ -134,13 +134,91 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
-    int idx = mph_lookup(mph, (uint8_t *)s, strlen(s));
+    int idx = mph_get(mph, (uint8_t *)s, strlen(s));
+    
+    // Convert from C-indexing to R's 1-indexing
     res[i] = idx < 0 ? NA_INTEGER : idx + 1;
   }
   
   UNPROTECT(1);
   return res_;
 }
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// as.factor()
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP mph_as_factor_(SEXP s_) {
+  
+  int nprotect = 0;
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Create 'mph'
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  size_t nbuckets = (size_t)(Rf_length(s_) * 3);
+  if (nbuckets < 1) {
+    Rf_error("mph_as_factor_(): Hash with zero buckets not possible");
+  }
+  
+  mph_t *mph = mph_init(nbuckets);
+  if (mph == NULL) {
+    Rf_error("mph_as_factor_(): Couldn't initialise hashmap");
+  }
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Create an integer vector
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  SEXP res_ = PROTECT(Rf_allocVector(INTSXP, Rf_length(s_))); nprotect++;
+  int32_t *res = INTEGER(res_);
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Bucket all the strings
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  for (int i = 0; i < Rf_length(s_); ++i) {
+    if (STRING_ELT(s_, i) == NA_STRING) {
+      res[i] = NA_INTEGER;
+    } else {
+      const char *s = CHAR(STRING_ELT(s_, i));
+      
+      // Define the key
+      uint8_t *key = (uint8_t *)s;
+      size_t len   = (size_t)strlen(s);
+      res[i] = mph_get_set(mph, key, len) + 1;
+      if (res[i] == 0) Rf_error("mph_as_factor_(): Allocation error");
+    }
+  }
+  
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Finish setting up the factor 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  SEXP levels_ = PROTECT(Rf_allocVector(STRSXP, mph->total_items)); nprotect++;
+  for (int i = 0; i < mph->nbuckets; i++) {
+    bucket_t b = mph->bucket[i];
+    if (b.key != NULL) {
+      SET_STRING_ELT(levels_, b.value, Rf_mkChar((const char *)b.key));
+    }
+  }
+  
+  Rf_setAttrib(res_, R_LevelsSymbol, levels_);
+  SEXP cls_ = PROTECT(Rf_mkString("factor")); nprotect++;
+  Rf_setAttrib(res_, R_ClassSymbol, cls_);
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // tidy and return
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  mph_destroy(mph);
+  UNPROTECT(nprotect);
+  return res_;
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -155,6 +155,24 @@ bench::mark(
 ```
 
 
+### Factor creation
+
+Note: this is not a direct replacement for `as.factor()` as levels are in
+order of first seen, not alphabetical.
+
+```{r}
+v <- c('h', 'e', 'l', 'l', 'o')
+mph_as_factor(v)
+as.factor(v)
+
+bench::mark(
+  as.factor(t4),
+  mph_as_factor(t4),
+  check = FALSE
+)[, 1:5] |> knitr::kable()
+```
+
+
 
 ### Time taken to build the hashmap
 

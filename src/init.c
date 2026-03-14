@@ -5,11 +5,13 @@
 
 extern SEXP mph_init_(SEXP x_, SEXP size_factor_, SEXP verbosity_);
 extern SEXP mph_match_(SEXP x_, SEXP bucket_);
+extern SEXP mph_as_factor_(SEXP s_);
 
 static const R_CallMethodDef CEntries[] = {
   
-  {"mph_init_"  , (DL_FUNC) &mph_init_  , 3},
-  {"mph_match_" , (DL_FUNC) &mph_match_ , 2},
+  {"mph_init_"     , (DL_FUNC) &mph_init_     , 3},
+  {"mph_match_"    , (DL_FUNC) &mph_match_    , 2},
+  {"mph_as_factor_", (DL_FUNC) &mph_as_factor_, 1},
   {NULL , NULL, 0}
 };
 

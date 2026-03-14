@@ -41,3 +41,21 @@ mph_match <- function(s, mph) {
   .Call(mph_match_, s, mph)
 }
 
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Convert string vector to a factor
+#' 
+#' Factor levels are in "first seen" order i.e. not sorted alphabetically.
+#' 
+#' @param s strings
+#' @return factor
+#' @examples
+#' mph_as_factor(letters)
+#' mph_as_factor(c('h', 'e', 'l', 'l', 'o'))
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mph_as_factor <- function(s) {
+  .Call(mph_as_factor_, s)
+}
+

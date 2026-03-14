@@ -40,7 +40,6 @@ void mph_destroy(mph_t *mph);
 // The contents of key are copied and cached within the hashmap
 //
 // Note: currently there is no checking if the key is already in the hashmap
-//       as my current workflows would only call mph_add after a failed lookup
 //       If you do happen to add duplicate keys, only the value for the 
 //       first key will ever be returned.
 //
@@ -49,7 +48,7 @@ void mph_destroy(mph_t *mph);
 // @param len length of data in 'key'
 // @return boolean. Success?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bool mph_add(mph_t *mph, uint8_t *key, size_t len);
+bool mph_set(mph_t *mph, uint8_t *key, size_t len);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Lookup a key in the hashmap.
@@ -60,6 +59,17 @@ bool mph_add(mph_t *mph, uint8_t *key, size_t len);
 // @return the int32_t value that is stored by this key
 //         If key is not in hashmap, return -1
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-int32_t mph_lookup(mph_t *mph, uint8_t *key, size_t len);
+int32_t mph_get(mph_t *mph, uint8_t *key, size_t len);
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Get the index for a value, adding it to the hashmap if not already present
+//
+// @param mph mph_t object
+// @param key byte data
+// @param len length of data in 'key'
+// @return the int32_t value that is stored by this key
+//         If key is not in hashmap, return -1
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+int32_t mph_get_set(mph_t *mph, uint8_t *key, size_t len);
 
 
