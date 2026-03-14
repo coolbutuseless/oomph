@@ -64,16 +64,16 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Setup the intermediate buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  size_t nbuckets = (size_t)(Rf_length(s_) * size_factor);
-  if (nbuckets < 1) {
+  size_t capacity = (size_t)(Rf_length(s_) * size_factor);
+  if (capacity < 1) {
     Rf_error("Hash with zero buckets not possible");
   }
   
   if (Rf_asInteger(verbosity_) > 0) {
-    Rprintf("N buckets: %i\n", (int)nbuckets);
+    Rprintf("N buckets: %i\n", (int)capacity);
   }
   
-  mph_t *mph = mph_init(nbuckets);
+  mph_t *mph = mph_init(capacity);
   if (mph == NULL) {
     Rf_error("mph_init_(): Couldn't initialise hashmap");
   }
@@ -100,7 +100,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
   // Dump buckets
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (Rf_asInteger(verbosity_) > 1) {
-    for (int i = 0; i < mph->nbuckets; ++i) {
+    for (int i = 0; i < mph->capacity; ++i) {
       Rprintf("[%3i] %3i\n", i, mph->bucket[i].value);
     }
   }
@@ -137,7 +137,7 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
     int idx = mph_get(mph, (uint8_t *)s, strlen(s));
     
     // Convert from C-indexing to R's 1-indexing
-    res[i] = idx < 0 ? NA_INTEGER : idx + 1;
+    res[i] = idx == MPH_NOT_FOUND ? NA_INTEGER : idx + 1;
   }
   
   UNPROTECT(1);
@@ -155,12 +155,12 @@ SEXP mph_as_factor_(SEXP s_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create 'mph'
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  size_t nbuckets = (size_t)(Rf_length(s_) * 3);
-  if (nbuckets < 1) {
+  size_t capacity = (size_t)(Rf_length(s_) * 3);
+  if (capacity < 1) {
     Rf_error("mph_as_factor_(): Hash with zero buckets not possible");
   }
   
-  mph_t *mph = mph_init(nbuckets);
+  mph_t *mph = mph_init(capacity);
   if (mph == NULL) {
     Rf_error("mph_as_factor_(): Couldn't initialise hashmap");
   }
@@ -183,8 +183,9 @@ SEXP mph_as_factor_(SEXP s_) {
       // Define the key
       uint8_t *key = (uint8_t *)s;
       size_t len   = (size_t)strlen(s);
-      res[i] = mph_get_set(mph, key, len) + 1;
-      if (res[i] == 0) Rf_error("mph_as_factor_(): Allocation error");
+      int32_t value = mph_get_set(mph, key, len);
+      if (value == MPH_ERROR) Rf_error("mph_as_factor_(): Allocation error");
+      res[i] = value + 1;
     }
   }
   
@@ -192,8 +193,8 @@ SEXP mph_as_factor_(SEXP s_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Finish setting up the factor 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP levels_ = PROTECT(Rf_allocVector(STRSXP, mph->total_items)); nprotect++;
-  for (int i = 0; i < mph->nbuckets; i++) {
+  SEXP levels_ = PROTECT(Rf_allocVector(STRSXP, mph->nitems)); nprotect++;
+  for (int i = 0; i < mph->capacity; i++) {
     bucket_t b = mph->bucket[i];
     if (b.key != NULL) {
       SET_STRING_ELT(levels_, b.value, Rf_mkChar((const char *)b.key));

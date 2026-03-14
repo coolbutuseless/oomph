@@ -1,5 +1,6 @@
 
-
+#define MPH_ERROR -2
+#define MPH_NOT_FOUND -1
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Buckets
@@ -16,18 +17,18 @@ typedef struct {
 // The hashmap is a collection of buckets
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 typedef struct {
-  bucket_t *bucket;    // Array of bucket_t
-  size_t nbuckets;     // Number of buckets
-  size_t total_items;  // Number of items in all the buckets
+  bucket_t *bucket; // Array of bucket_t
+  size_t capacity;  // Number of buckets
+  size_t nitems;    // Number of items in all the buckets
 } mph_t;
 
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Create a hashmap with the given number of buckets.
-// 'nbuckets' cannot be changed once hashmap is created
+// 'capacity' cannot be changed once hashmap is created
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_t *mph_init(size_t nbuckets); 
+mph_t *mph_init(size_t capacity); 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Free all memory associated with hashmap.
@@ -57,7 +58,7 @@ bool mph_set(mph_t *mph, uint8_t *key, size_t len);
 // @param key byte data
 // @param len length of data in 'key'
 // @return the int32_t value that is stored by this key
-//         If key is not in hashmap, return -1
+//         If key is not in hashmap, return MPH_NOT_FOUND
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_get(mph_t *mph, uint8_t *key, size_t len);
 
@@ -68,7 +69,7 @@ int32_t mph_get(mph_t *mph, uint8_t *key, size_t len);
 // @param key byte data
 // @param len length of data in 'key'
 // @return the int32_t value that is stored by this key
-//         If key is not in hashmap, return -1
+//         Returns index or MPH_ERROR
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_get_set(mph_t *mph, uint8_t *key, size_t len);
 

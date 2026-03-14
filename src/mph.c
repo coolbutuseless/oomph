@@ -20,7 +20,7 @@ void mph_destroy(mph_t *mph) {
   
   if (mph == NULL) return;
   if (mph->bucket != NULL) {
-    for (int i = 0; i < mph->nbuckets; i++) {
+    for (int i = 0; i < mph->capacity; i++) {
       free(mph->bucket[i].key);
     }
     free(mph->bucket);
@@ -33,8 +33,8 @@ void mph_destroy(mph_t *mph) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialize a hashmap
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mph_t *mph_init(size_t nbuckets) {
-  if (nbuckets < 1) {
+mph_t *mph_init(size_t capacity) {
+  if (capacity < 1) {
     return NULL;
   }
   
@@ -42,10 +42,10 @@ mph_t *mph_init(size_t nbuckets) {
   if (mph == NULL) {
     return NULL;
   }
-  mph->nbuckets    = nbuckets;
-  mph->total_items = 0;
+  mph->capacity    = capacity;
+  mph->nitems = 0;
   
-  mph->bucket = calloc(nbuckets, sizeof(bucket_t));
+  mph->bucket = calloc(capacity, sizeof(bucket_t));
   if (mph->bucket == NULL) {
     return NULL;
   }
@@ -62,7 +62,7 @@ mph_t *mph_init(size_t nbuckets) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_get(mph_t *mph, uint8_t *key, size_t len) {
   const uint64_t hash = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
-  uint32_t idx = (uint32_t)(hash % mph->nbuckets);
+  uint32_t idx = (uint32_t)(hash % mph->capacity);
   
   bucket_t bucket = mph->bucket[idx];
   
@@ -71,11 +71,11 @@ int32_t mph_get(mph_t *mph, uint8_t *key, size_t len) {
         memcmp(key, bucket.key, bucket.len) == 0) {
       return bucket.value;
     }
-    idx = (idx + 1) % mph->nbuckets;
+    idx = (idx + 1) % mph->capacity;
     bucket = mph->bucket[idx];
   }
   
-  return -1;
+  return MPH_NOT_FOUND;
 }  
 
 
@@ -88,12 +88,12 @@ int32_t mph_get(mph_t *mph, uint8_t *key, size_t len) {
 bool mph_set(mph_t *mph, uint8_t *key, size_t len) {
   // Hash key, and calculate the bucket
   const uint64_t hash = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
-  uint32_t idx  = (uint32_t)(hash % mph->nbuckets);
-  const int32_t value = (int32_t)mph->total_items++;
+  uint32_t idx  = (uint32_t)(hash % mph->capacity);
+  const int32_t value = (int32_t)mph->nitems++;
   
   // Linear probing for an empty bucket
   while (mph->bucket[idx].key != NULL) {
-    idx = (idx + 1) % mph->nbuckets;
+    idx = (idx + 1) % mph->capacity;
   }
   
   // Add key to the hashmap
@@ -117,7 +117,7 @@ bool mph_set(mph_t *mph, uint8_t *key, size_t len) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int32_t mph_get_set(mph_t *mph, uint8_t *key, size_t len) {
   const uint64_t hash = chibihash64(key, (ptrdiff_t)len, 0xdeadbeef);
-  uint32_t idx = (uint32_t)(hash % mph->nbuckets);
+  uint32_t idx = (uint32_t)(hash % mph->capacity);
   
   bucket_t bucket = mph->bucket[idx];
   
@@ -127,13 +127,13 @@ int32_t mph_get_set(mph_t *mph, uint8_t *key, size_t len) {
         memcmp(key, bucket.key, bucket.len) == 0) {
       return bucket.value;
     }
-    idx = (idx + 1) % mph->nbuckets;
+    idx = (idx + 1) % mph->capacity;
     bucket = mph->bucket[idx];
   }
   
   // If we get to here, a match has not been found,
   // and 'idx' is set to an appropriate empty slot
-  const int32_t value = (int32_t)mph->total_items++;
+  const int32_t value = (int32_t)mph->nitems++;
   
   // Add key to the hashmap
   mph->bucket[idx].value = value;
@@ -141,7 +141,7 @@ int32_t mph_get_set(mph_t *mph, uint8_t *key, size_t len) {
   mph->bucket[idx].len   = len;
   mph->bucket[idx].key   = malloc(len);
   if (mph->bucket[idx].key == NULL) {
-    return -1;
+    return MPH_ERROR;
   }
   memcpy(mph->bucket[idx].key, key, len);
   
