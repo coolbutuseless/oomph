@@ -91,7 +91,7 @@ SEXP mph_init_(SEXP s_, SEXP size_factor_, SEXP verbosity_) {
     uint8_t *key = (uint8_t *)s;
     size_t len   = (size_t)strlen(s);
     
-    if (!mph_set(mph, key, len)) {
+    if (!mph_set(mph, key, len + 1)) {
       Rf_error("mph_init_(): Error adding item %i: '%s'", i, s);
     }
   }
@@ -134,7 +134,7 @@ SEXP mph_match_(SEXP s_, SEXP mph_) {
   for (int i = 0; i < Rf_length(s_); ++i) {
     const char *s = CHAR(STRING_ELT(s_, i));
     
-    int idx = mph_get(mph, (uint8_t *)s, strlen(s));
+    int idx = mph_get(mph, (uint8_t *)s, strlen(s) + 1);
     
     // Convert from C-indexing to R's 1-indexing
     res[i] = idx == MPH_NOT_FOUND ? NA_INTEGER : idx + 1;
@@ -183,7 +183,7 @@ SEXP mph_as_factor_(SEXP s_) {
       // Define the key
       uint8_t *key = (uint8_t *)s;
       size_t len   = (size_t)strlen(s);
-      int32_t value = mph_get_set(mph, key, len);
+      int32_t value = mph_get_set(mph, key, len + 1); // Keep NULL terminator on strings
       if (value == MPH_ERROR) Rf_error("mph_as_factor_(): Allocation error");
       res[i] = value + 1;
     }
