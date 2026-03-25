@@ -20,6 +20,7 @@ typedef struct {
   bucket_t *bucket; // Array of bucket_t
   size_t capacity;  // Number of buckets
   size_t nitems;    // Number of items in all the buckets
+  size_t total_key_length;
 } mph_t;
 
 

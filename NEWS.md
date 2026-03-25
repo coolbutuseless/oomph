@@ -1,4 +1,8 @@
 
+# oomph 0.1.4.9000 2026-03-25
+
+* Add counter for total key length
+
 # oomph 0.1.4 2026-03-09
 
 * Switch from chaining to open-addressing/linear probing.
