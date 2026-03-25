@@ -1,4 +1,6 @@
 
+#pragma once
+
 #define MPH_ERROR -2
 #define MPH_NOT_FOUND -1
 
